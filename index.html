@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Yu-Gi-Oh! Trade & Wish List</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+  <h1 class="text-3xl font-bold mb-6 text-center">Yu-Gi-Oh! Trade & Wish List</h1>
+  
+  <div class="grid grid-cols-2 gap-8">
+    <!-- Selling/Trading -->
+    <div>
+      <div class="flex justify-between items-center mb-2">
+        <h2 class="text-xl font-semibold">Selling / Trading</h2>
+      </div>
+      <input id="selling-search" type="text" placeholder="Search..." class="w-full mb-2 border p-1 rounded text-sm">
+      <div class="flex justify-between items-center mb-2">
+        <div>
+          <label class="mr-1">Sort by:</label>
+          <select id="selling-sort" class="border rounded p-1 text-sm">
+            <option value="random">Random</option>
+            <option value="name">Name</option>
+            <option value="setid">Set ID</option>
+            <option value="passcode">Passcode</option>
+            <option value="price">Price</option>
+          </select>
+          <button id="selling-order" class="ml-1 bg-gray-200 px-2 rounded text-sm">Asc</button>
+        </div>
+      </div>
+      <div id="selling-list" class="grid gap-4 h-[70vh] overflow-y-auto"></div>
+    </div>
+    
+    <!-- Looking For -->
+    <div>
+      <div class="flex justify-between items-center mb-2">
+        <h2 class="text-xl font-semibold">Looking For</h2>
+      </div>
+      <input id="wanted-search" type="text" placeholder="Search..." class="w-full mb-2 border p-1 rounded text-sm">
+      <div class="flex justify-between items-center mb-2">
+        <div>
+          <label class="mr-1">Sort by:</label>
+          <select id="wanted-sort" class="border rounded p-1 text-sm">
+            <option value="random">Random</option>
+            <option value="name">Name</option>
+            <option value="setid">Set ID</option>
+            <option value="passcode">Passcode</option>
+            <option value="price">Price</option>
+          </select>
+          <button id="wanted-order" class="ml-1 bg-gray-200 px-2 rounded text-sm">Asc</button>
+        </div>
+      </div>
+      <div id="wanted-list" class="grid gap-4 h-[70vh] overflow-y-auto"></div>
+    </div>
+  </div>
+
+  <script>
+    const sellingList = document.getElementById("selling-list");
+    const wantedList = document.getElementById("wanted-list");
+
+    const sellingSortSelect = document.getElementById("selling-sort");
+    const sellingOrderBtn = document.getElementById("selling-order");
+    const wantedSortSelect = document.getElementById("wanted-sort");
+    const wantedOrderBtn = document.getElementById("wanted-order");
+
+    const sellingSearch = document.getElementById("selling-search");
+    const wantedSearch = document.getElementById("wanted-search");
+
+    const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQpJVCUhWxyH_TM4-83ra9FXLCES8yqIBVQy3ed6OoVZwbSH4LkoVh7gBn6K2iz32cQNftsj1E-UIiK/pub?output=csv";
+
+    let sellingCards = [];
+    let wantedCards = [];
+
+    async function loadCsv(url) {
+      return new Promise((resolve, reject) => {
+        Papa.parse(url, {
+          download: true,
+          header: false,
+          skipEmptyLines: true,
+          complete: results => resolve(results.data),
+          error: err => reject(err)
+        });
+      });
+    }
+
+    function createCardElement({name, setid, passcode, price, customImage}) {
+      if (!name?.trim()) return null;
+
+      let image = passcode?.trim() ? `https://images.ygoprodeck.com/images/cards/${passcode.trim()}.jpg` : "";
+      if (customImage?.trim()) image = customImage.trim();
+
+      const cardEl = document.createElement("div");
+      cardEl.className = "bg-white rounded-xl shadow-md p-3 flex gap-3 items-center";
+
+      cardEl.innerHTML = `
+        <img src="${image}" alt="${name}" class="w-20 h-28 object-cover rounded">
+        <div>
+          <h4 class="font-bold">${name}</h4>
+          ${setid?.trim() ? `<p class="text-sm text-gray-600">Set: ${setid}</p>` : ""}
+          ${passcode?.trim() ? `<p class="text-sm text-gray-600">Passcode: ${passcode}</p>` : ""}
+          ${price?.trim() ? `<p class="text-sm text-green-600">$${price}</p>` : ""}
+        </div>
+      `;
+      return cardEl;
+    }
+
+    function renderList(listEl, cards, searchTerm = "") {
+      listEl.innerHTML = "";
+      const term = searchTerm.toLowerCase();
+      cards.forEach(card => {
+        const matches = Object.values(card).some(value => (value || "").toLowerCase().includes(term));
+        if (matches) {
+          const el = createCardElement(card);
+          if (el) listEl.appendChild(el);
+        }
+      });
+    }
+
+    function sortCards(cards, key, ascending=true) {
+      if (key === "random") {
+        return cards.sort(() => Math.random() - 0.5);
+      }
+      return cards.sort((a, b) => {
+        let valA = a[key]?.trim() || "";
+        let valB = b[key]?.trim() || "";
+        if (key === "price" || key === "passcode") {
+          valA = parseFloat(valA) || 0;
+          valB = parseFloat(valB) || 0;
+        }
+        if (valA < valB) return ascending ? -1 : 1;
+        if (valA > valB) return ascending ? 1 : -1;
+        return 0;
+      });
+    }
+
+    async function renderCards() {
+      const rows = await loadCsv(csvUrl);
+      if (rows.length === 0) return;
+
+      const headers = rows[0].map(h => h.trim().toLowerCase());
+      const getIndex = name => headers.indexOf(name.toLowerCase());
+      const map = {
+        sellingName: getIndex("selling name"),
+        sellingSetID: getIndex("selling set id"),
+        sellingPasscode: getIndex("selling passcode"),
+        sellingPrice: getIndex("selling price"),
+        sellingImage: getIndex("selling image url"),
+        wantedName: getIndex("wanted name"),
+        wantedSetID: getIndex("wanted set id"),
+        wantedPasscode: getIndex("wanted passcode"),
+        wantedPrice: getIndex("wanted price"),
+        wantedImage: getIndex("wanted image url")
+      };
+
+      sellingCards = [];
+      wantedCards = [];
+
+      rows.slice(1).forEach(cols => {
+        sellingCards.push({
+          name: map.sellingName >= 0 ? cols[map.sellingName] : "",
+          setid: map.sellingSetID >= 0 ? cols[map.sellingSetID] : "",
+          passcode: map.sellingPasscode >= 0 ? cols[map.sellingPasscode] : "",
+          price: map.sellingPrice >= 0 ? cols[map.sellingPrice] : "",
+          customImage: map.sellingImage >= 0 ? cols[map.sellingImage] : ""
+        });
+        wantedCards.push({
+          name: map.wantedName >= 0 ? cols[map.wantedName] : "",
+          setid: map.wantedSetID >= 0 ? cols[map.wantedSetID] : "",
+          passcode: map.wantedPasscode >= 0 ? cols[map.wantedPasscode] : "",
+          price: map.wantedPrice >= 0 ? cols[map.wantedPrice] : "",
+          customImage: map.wantedImage >= 0 ? cols[map.wantedImage] : ""
+        });
+      });
+
+      // Initial render in random order
+      renderList(sellingList, sortCards(sellingCards, "random"));
+      renderList(wantedList, sortCards(wantedCards, "random"));
+    }
+
+    function setupSortingAndSearch() {
+      // Selling
+      const updateSelling = () => {
+        const sorted = sortCards([...sellingCards], sellingSortSelect.value, sellingOrderBtn.textContent==="Asc");
+        renderList(sellingList, sorted, sellingSearch.value);
+      };
+      sellingSortSelect.addEventListener("change", updateSelling);
+      sellingOrderBtn.addEventListener("click", () => {
+        sellingOrderBtn.textContent = sellingOrderBtn.textContent==="Asc"?"Desc":"Asc";
+        updateSelling();
+      });
+      sellingSearch.addEventListener("input", updateSelling);
+
+      // Wanted
+      const updateWanted = () => {
+        const sorted = sortCards([...wantedCards], wantedSortSelect.value, wantedOrderBtn.textContent==="Asc");
+        renderList(wantedList, sorted, wantedSearch.value);
+      };
+      wantedSortSelect.addEventListener("change", updateWanted);
+      wantedOrderBtn.addEventListener("click", () => {
+        wantedOrderBtn.textContent = wantedOrderBtn.textContent==="Asc"?"Desc":"Asc";
+        updateWanted();
+      });
+      wantedSearch.addEventListener("input", updateWanted);
+    }
+
+    renderCards().then(setupSortingAndSearch);
+  </script>
+</body>
+</html>
