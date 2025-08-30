@@ -25,6 +25,7 @@
             <option value="setid">Set ID</option>
             <option value="passcode">Passcode</option>
             <option value="price">Price</option>
+            <option value="quantity">Quantity</option>
           </select>
           <button id="selling-order" class="ml-1 bg-gray-200 px-2 rounded text-sm">Asc</button>
         </div>
@@ -47,6 +48,7 @@
             <option value="setid">Set ID</option>
             <option value="passcode">Passcode</option>
             <option value="price">Price</option>
+            <option value="quantity">Quantity</option>
           </select>
           <button id="wanted-order" class="ml-1 bg-gray-200 px-2 rounded text-sm">Asc</button>
         </div>
@@ -84,7 +86,7 @@
       });
     }
 
-    function createCardElement({name, setid, passcode, price, customImage}) {
+    function createCardElement({name, setid, passcode, price, customImage, quantity}) {
       if (!name?.trim()) return null;
 
       let image = passcode?.trim() ? `https://images.ygoprodeck.com/images/cards/${passcode.trim()}.jpg` : "";
@@ -100,6 +102,7 @@
           ${setid?.trim() ? `<p class="text-sm text-gray-600">Set: ${setid}</p>` : ""}
           ${passcode?.trim() ? `<p class="text-sm text-gray-600">Passcode: ${passcode}</p>` : ""}
           ${price?.trim() ? `<p class="text-sm text-green-600">$${price}</p>` : ""}
+          ${quantity?.trim() ? `<p class="text-sm text-blue-600">Quantity: ${quantity}</p>` : ""}
         </div>
       `;
       return cardEl;
@@ -124,7 +127,7 @@
       return cards.sort((a, b) => {
         let valA = a[key]?.trim() || "";
         let valB = b[key]?.trim() || "";
-        if (key === "price" || key === "passcode") {
+        if (key === "price" || key === "passcode" || key === "quantity") {
           valA = parseFloat(valA) || 0;
           valB = parseFloat(valB) || 0;
         }
@@ -146,11 +149,14 @@
         sellingPasscode: getIndex("selling passcode"),
         sellingPrice: getIndex("selling price"),
         sellingImage: getIndex("selling image url"),
+        sellingQuantity: getIndex("selling quantity"), // NEW
+
         wantedName: getIndex("wanted name"),
         wantedSetID: getIndex("wanted set id"),
         wantedPasscode: getIndex("wanted passcode"),
         wantedPrice: getIndex("wanted price"),
-        wantedImage: getIndex("wanted image url")
+        wantedImage: getIndex("wanted image url"),
+        wantedQuantity: getIndex("wanted quantity") // NEW
       };
 
       sellingCards = [];
@@ -162,14 +168,16 @@
           setid: map.sellingSetID >= 0 ? cols[map.sellingSetID] : "",
           passcode: map.sellingPasscode >= 0 ? cols[map.sellingPasscode] : "",
           price: map.sellingPrice >= 0 ? cols[map.sellingPrice] : "",
-          customImage: map.sellingImage >= 0 ? cols[map.sellingImage] : ""
+          customImage: map.sellingImage >= 0 ? cols[map.sellingImage] : "",
+          quantity: map.sellingQuantity >= 0 ? cols[map.sellingQuantity] : "" // NEW
         });
         wantedCards.push({
           name: map.wantedName >= 0 ? cols[map.wantedName] : "",
           setid: map.wantedSetID >= 0 ? cols[map.wantedSetID] : "",
           passcode: map.wantedPasscode >= 0 ? cols[map.wantedPasscode] : "",
           price: map.wantedPrice >= 0 ? cols[map.wantedPrice] : "",
-          customImage: map.wantedImage >= 0 ? cols[map.wantedImage] : ""
+          customImage: map.wantedImage >= 0 ? cols[map.wantedImage] : "",
+          quantity: map.wantedQuantity >= 0 ? cols[map.wantedQuantity] : "" // NEW
         });
       });
 
