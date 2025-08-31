@@ -86,6 +86,13 @@
       });
     }
 
+    // 🔹 Normalize passcodes to always 8 digits
+    function normalizePasscode(code) {
+      if (!code) return "";
+      code = code.trim();
+      return code.padStart(8, "0");
+    }
+
     function createCardElement({name, setid, passcode, price, customImage, quantity}) {
       if (!name?.trim()) return null;
 
@@ -111,8 +118,13 @@
     function renderList(listEl, cards, searchTerm = "") {
       listEl.innerHTML = "";
       const term = searchTerm.toLowerCase();
+
       cards.forEach(card => {
-        const matches = Object.values(card).some(value => (value || "").toLowerCase().includes(term));
+        const matches = Object.values(card).some(value => {
+          const val = (value || "").toLowerCase();
+          // 🔹 Ignore leading zeros when searching numbers
+          return val.includes(term) || val.replace(/^0+/, "").includes(term.replace(/^0+/, ""));
+        });
         if (matches) {
           const el = createCardElement(card);
           if (el) listEl.appendChild(el);
@@ -149,14 +161,14 @@
         sellingPasscode: getIndex("selling passcode"),
         sellingPrice: getIndex("selling price"),
         sellingImage: getIndex("selling image url"),
-        sellingQuantity: getIndex("selling quantity"), // NEW
+        sellingQuantity: getIndex("selling quantity"),
 
         wantedName: getIndex("wanted name"),
         wantedSetID: getIndex("wanted set id"),
         wantedPasscode: getIndex("wanted passcode"),
         wantedPrice: getIndex("wanted price"),
         wantedImage: getIndex("wanted image url"),
-        wantedQuantity: getIndex("wanted quantity") // NEW
+        wantedQuantity: getIndex("wanted quantity")
       };
 
       sellingCards = [];
@@ -166,18 +178,18 @@
         sellingCards.push({
           name: map.sellingName >= 0 ? cols[map.sellingName] : "",
           setid: map.sellingSetID >= 0 ? cols[map.sellingSetID] : "",
-          passcode: map.sellingPasscode >= 0 ? cols[map.sellingPasscode] : "",
+          passcode: map.sellingPasscode >= 0 ? normalizePasscode(cols[map.sellingPasscode]) : "",
           price: map.sellingPrice >= 0 ? cols[map.sellingPrice] : "",
           customImage: map.sellingImage >= 0 ? cols[map.sellingImage] : "",
-          quantity: map.sellingQuantity >= 0 ? cols[map.sellingQuantity] : "" // NEW
+          quantity: map.sellingQuantity >= 0 ? cols[map.sellingQuantity] : ""
         });
         wantedCards.push({
           name: map.wantedName >= 0 ? cols[map.wantedName] : "",
           setid: map.wantedSetID >= 0 ? cols[map.wantedSetID] : "",
-          passcode: map.wantedPasscode >= 0 ? cols[map.wantedPasscode] : "",
+          passcode: map.wantedPasscode >= 0 ? normalizePasscode(cols[map.wantedPasscode]) : "",
           price: map.wantedPrice >= 0 ? cols[map.wantedPrice] : "",
           customImage: map.wantedImage >= 0 ? cols[map.wantedImage] : "",
-          quantity: map.wantedQuantity >= 0 ? cols[map.wantedQuantity] : "" // NEW
+          quantity: map.wantedQuantity >= 0 ? cols[map.wantedQuantity] : ""
         });
       });
 
