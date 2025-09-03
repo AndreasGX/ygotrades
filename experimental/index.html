@@ -57,6 +57,14 @@
     </div>
   </div>
 
+  <!-- Popup Modal -->
+  <div id="popup-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center">
+    <div id="popup-content" class="bg-white rounded-xl shadow-lg p-6 max-w-lg w-full relative">
+      <button id="popup-close" class="absolute top-2 right-2 text-gray-500 hover:text-red-500 text-2xl">&times;</button>
+      <div id="popup-body"></div>
+    </div>
+  </div>
+
   <script>
     const sellingList = document.getElementById("selling-list");
     const wantedList = document.getElementById("wanted-list");
@@ -74,6 +82,22 @@
     let sellingCards = [];
     let wantedCards = [];
 
+    // Modal logic
+    const popupOverlay = document.getElementById('popup-overlay');
+    const popupContent = document.getElementById('popup-content');
+    const popupBody = document.getElementById('popup-body');
+    const popupClose = document.getElementById('popup-close');
+    popupClose.addEventListener('click', () => {
+      popupOverlay.classList.add('hidden');
+      popupBody.innerHTML = '';
+    });
+    popupOverlay.addEventListener('click', (e) => {
+      if (e.target === popupOverlay) {
+        popupOverlay.classList.add('hidden');
+        popupBody.innerHTML = '';
+      }
+    });
+
     async function loadCsv(url) {
       return new Promise((resolve, reject) => {
         Papa.parse(url, {
@@ -86,79 +110,85 @@
       });
     }
 
-    // Fetch Portuguese card info from Yugipedia
+    // Fetch Portuguese card info from Yugipedia only when requested
     async function fetchYugipediaCardInfo(ptName) {
-      // Search for the correct page using the Portuguese card name
       const searchUrl = `https://yugipedia.com/api.php?action=query&format=json&list=search&srsearch=${encodeURIComponent(ptName)}&utf8=1&srlimit=1`;
       try {
         const searchRes = await fetch(searchUrl);
         const searchData = await searchRes.json();
         const result = searchData?.query?.search?.[0];
-        if (!result) return { description: "", image: "" };
+        if (!result) return { description: "Descrição não encontrada.", image: "" };
 
-        // Now query the page for description and image
         const pageId = result.pageid;
-        const pageUrl = `https://yugipedia.com/api.php?action=query&format=json&prop=extracts|pageimages&exintro=1&explaintext=1&pithumbsize=300&pageids=${pageId}`;
+        const pageUrl = `https://yugipedia.com/api.php?action=query&format=json&prop=extracts|pageimages&exintro=1&explaintext=1&pithumbsize=400&pageids=${pageId}`;
         const pageRes = await fetch(pageUrl);
         const pageData = await pageRes.json();
         const page = pageData.query.pages[pageId];
 
-        // The extract will likely be in English, but Yugipedia usually lists Portuguese name in the infobox
-        // For Portuguese sets, prefer the CSV name (assumed to be in Portuguese)
-        const description = page.extract || "";
-        const image = page.thumbnail?.source || "";
+        const description = page.extract || "Descrição não encontrada.";
+        const image = page.original?.source || page.thumbnail?.source || "";
 
         return { description, image };
       } catch (err) {
-        return { description: "", image: "" };
+        return { description: "Descrição não encontrada.", image: "" };
       }
     }
 
-    // Returns a promise that resolves to a card element
-    async function createCardElementYugipedia({name, setid, passcode, price, customImage, quantity}) {
-      if (!name?.trim()) return null;
+    function createCardElementYugipedia(card, type) {
+      // type is either "selling" or "wanted"
+      if (!card.name?.trim()) return null;
 
-      // Always use the Portuguese name for the card
-      let image = "";
-      let description = "";
-
-      // Prefer custom CSV image if present
-      if (customImage?.trim()) {
-        image = customImage.trim();
-      } else {
-        // Fetch from Yugipedia
-        const info = await fetchYugipediaCardInfo(name);
-        image = info.image || "";
-        description = info.description || "";
-      }
+      // Prefer custom image if present, else blank
+      let image = card.customImage?.trim() || "";
 
       const cardEl = document.createElement("div");
-      cardEl.className = "bg-white rounded-xl shadow-md p-3 flex gap-3 items-center";
-
+      cardEl.className = "bg-white rounded-xl shadow-md p-3 flex gap-3 items-center cursor-pointer hover:ring-2 hover:ring-blue-400 transition";
       cardEl.innerHTML = `
-        <img src="${image}" alt="${name}" class="w-20 h-28 object-cover rounded">
+        <img src="${image || ''}" alt="${card.name}" class="w-20 h-28 object-cover rounded bg-gray-200">
         <div>
-          <h4 class="font-bold">${name}</h4>
-          ${setid?.trim() ? `<p class="text-sm text-gray-600">Número: ${setid}</p>` : ""}
-          ${price?.trim() ? `<p class="text-sm text-green-600">R$ ${price}</p>` : ""}
-          ${quantity?.trim() ? `<p class="text-sm text-blue-600">Quantidade: ${quantity}</p>` : ""}
-          ${description ? `<p class="text-sm mt-2 text-gray-800">${description}</p>` : ""}
+          <h4 class="font-bold">${card.name}</h4>
+          ${card.setid?.trim() ? `<p class="text-sm text-gray-600">Número: ${card.setid}</p>` : ""}
+          ${card.price?.trim() ? `<p class="text-sm text-green-600">R$ ${card.price}</p>` : ""}
+          ${card.quantity?.trim() ? `<p class="text-sm text-blue-600">Quantidade: ${card.quantity}</p>` : ""}
         </div>
       `;
+      cardEl.addEventListener('click', async () => {
+        // Show popup and load description
+        popupOverlay.classList.remove('hidden');
+        popupBody.innerHTML = `
+          <div class="flex gap-4 items-start">
+            <img src="${image || ''}" alt="${card.name}" class="w-32 h-44 object-cover rounded bg-gray-200 flex-shrink-0">
+            <div>
+              <h2 class="text-xl font-bold mb-2">${card.name}</h2>
+              ${card.setid?.trim() ? `<p class="text-sm text-gray-600 mb-1">Número: ${card.setid}</p>` : ""}
+              ${card.price?.trim() ? `<p class="text-sm text-green-600 mb-1">R$ ${card.price}</p>` : ""}
+              ${card.quantity?.trim() ? `<p class="text-sm text-blue-600 mb-1">Quantidade: ${card.quantity}</p>` : ""}
+              <div id="popup-desc" class="mt-2 text-gray-700 italic">Carregando descrição...</div>
+            </div>
+          </div>
+        `;
+        // Fetch Yugipedia info
+        const info = await fetchYugipediaCardInfo(card.name);
+        const descBox = document.getElementById('popup-desc');
+        descBox.textContent = info.description;
+        if (!image && info.image) {
+          // If there was no image before, update it
+          popupBody.querySelector('img').src = info.image;
+        }
+      });
       return cardEl;
     }
 
-    // Async render list
-    async function renderListYugipedia(listEl, cards, searchTerm = "") {
+    function renderListYugipedia(listEl, cards, searchTerm = "") {
       listEl.innerHTML = "";
       const term = searchTerm.toLowerCase();
-      for (const card of cards) {
+      cards.forEach(card => {
         const matches = Object.values(card).some(value => (value || "").toLowerCase().includes(term));
         if (matches) {
-          const el = await createCardElementYugipedia(card);
+          const el = createCardElementYugipedia(card);
           if (el) listEl.appendChild(el);
         }
-      }
+      });
     }
 
     function sortCards(cards, key, ascending=true) {
@@ -222,15 +252,15 @@
         });
       });
 
-      await renderListYugipedia(sellingList, sortCards(sellingCards, "random"));
-      await renderListYugipedia(wantedList, sortCards(wantedCards, "random"));
+      renderListYugipedia(sellingList, sortCards(sellingCards, "random"));
+      renderListYugipedia(wantedList, sortCards(wantedCards, "random"));
     }
 
     function setupSortingAndSearchYugipedia() {
       // Selling
-      const updateSelling = async () => {
+      const updateSelling = () => {
         const sorted = sortCards([...sellingCards], sellingSortSelect.value, sellingOrderBtn.textContent === "Ascendente");
-        await renderListYugipedia(sellingList, sorted, sellingSearch.value);
+        renderListYugipedia(sellingList, sorted, sellingSearch.value);
       };
       sellingSortSelect.addEventListener("change", updateSelling);
       sellingOrderBtn.addEventListener("click", () => {
@@ -240,9 +270,9 @@
       sellingSearch.addEventListener("input", updateSelling);
 
       // Wanted
-      const updateWanted = async () => {
+      const updateWanted = () => {
         const sorted = sortCards([...wantedCards], wantedSortSelect.value, wantedOrderBtn.textContent === "Ascendente");
-        await renderListYugipedia(wantedList, sorted, wantedSearch.value);
+        renderListYugipedia(wantedList, sorted, wantedSearch.value);
       };
       wantedSortSelect.addEventListener("change", updateWanted);
       wantedOrderBtn.addEventListener("click", () => {
