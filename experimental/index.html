@@ -9,13 +9,13 @@
     modalContent.innerHTML = "";
   });
 
-  const cardCache = new Map(); // cache card details
+  const cardCache = new Map();
 
   async function loadCsv(url) {
     return new Promise((resolve, reject) => {
       Papa.parse(url, {
         download: true,
-        header: true,
+        header: false, // keep it false like your original
         skipEmptyLines: true,
         complete: results => resolve(results.data),
         error: err => reject(err)
@@ -136,29 +136,48 @@
     });
 
     searchEl.addEventListener("input", update);
-    update(); // initial render
+    update();
   }
 
   async function init() {
     const rows = await loadCsv(csvUrl);
     if (!rows.length) return;
 
-    const sellingCards = rows.map(r => ({
-      name: r["selling name"] || "",
-      setid: r["selling set id"] || "",
-      passcode: r["selling passcode"] || "",
-      price: r["selling price"] || "",
-      customImage: r["selling image url"] || "",
-      quantity: r["selling quantity"] || ""
+    const headers = rows[0].map(h => h.trim().toLowerCase());
+    const getIndex = name => headers.indexOf(name.toLowerCase());
+
+    const map = {
+      sellingName: getIndex("selling name"),
+      sellingSetID: getIndex("selling set id"),
+      sellingPasscode: getIndex("selling passcode"),
+      sellingPrice: getIndex("selling price"),
+      sellingImage: getIndex("selling image url"),
+      sellingQuantity: getIndex("selling quantity"),
+
+      wantedName: getIndex("wanted name"),
+      wantedSetID: getIndex("wanted set id"),
+      wantedPasscode: getIndex("wanted passcode"),
+      wantedPrice: getIndex("wanted price"),
+      wantedImage: getIndex("wanted image url"),
+      wantedQuantity: getIndex("wanted quantity")
+    };
+
+    const sellingCards = rows.slice(1).map(r => ({
+      name: r[map.sellingName] || "",
+      setid: r[map.sellingSetID] || "",
+      passcode: r[map.sellingPasscode] || "",
+      price: r[map.sellingPrice] || "",
+      customImage: r[map.sellingImage] || "",
+      quantity: r[map.sellingQuantity] || ""
     }));
 
-    const wantedCards = rows.map(r => ({
-      name: r["wanted name"] || "",
-      setid: r["wanted set id"] || "",
-      passcode: r["wanted passcode"] || "",
-      price: r["wanted price"] || "",
-      customImage: r["wanted image url"] || "",
-      quantity: r["wanted quantity"] || ""
+    const wantedCards = rows.slice(1).map(r => ({
+      name: r[map.wantedName] || "",
+      setid: r[map.wantedSetID] || "",
+      passcode: r[map.wantedPasscode] || "",
+      price: r[map.wantedPrice] || "",
+      customImage: r[map.wantedImage] || "",
+      quantity: r[map.wantedQuantity] || ""
     }));
 
     setupSection({
