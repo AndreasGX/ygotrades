@@ -1,3 +1,3 @@
-Made with ChatGPT, since I terrible at coding.
+A personal webpage for trading/selling Yu-Gi-Oh! Cards.
 
 https://andreasgx.github.io/ygotrades/
