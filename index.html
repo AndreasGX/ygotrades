@@ -12,73 +12,49 @@
   <div class="grid grid-cols-2 gap-8">
     <!-- Selling/Trading -->
     <div>
-      <div class="flex justify-between items-center mb-2">
-        <h2 class="text-xl font-semibold">Tenho</h2>
-      </div>
+      <h2 class="text-xl font-semibold mb-2">Tenho</h2>
       <input id="selling-search" type="text" placeholder="Pesquisar..." class="w-full mb-2 border p-1 rounded text-sm">
-      <div class="flex justify-between items-center mb-2">
-        <div>
-          <label class="mr-1">Ordenar por:</label>
-          <select id="selling-sort" class="border rounded p-1 text-sm">
-            <option value="random">Aleatório</option>
-            <option value="name">Nome</option>
-            <option value="setid">Número</option>
-            <option value="passcode">Código</option>
-            <option value="price">Preço</option>
-            <option value="quantity">Quantidade</option>
-          </select>
-          <button id="selling-order" class="ml-1 bg-gray-200 px-2 rounded text-sm">Ascendente</button>
-        </div>
+      <div class="flex items-center gap-2 mb-2">
+        <label>Ordenar por:</label>
+        <select id="selling-sort" class="border rounded p-1 text-sm"></select>
+        <button id="selling-order" class="bg-gray-200 px-2 rounded text-sm">Ascendente</button>
       </div>
       <div id="selling-list" class="grid gap-4 h-[70vh] overflow-y-auto"></div>
     </div>
     
     <!-- Looking For -->
     <div>
-      <div class="flex justify-between items-center mb-2">
-        <h2 class="text-xl font-semibold">Quero</h2>
-      </div>
+      <h2 class="text-xl font-semibold mb-2">Quero</h2>
       <input id="wanted-search" type="text" placeholder="Pesquisar..." class="w-full mb-2 border p-1 rounded text-sm">
-      <div class="flex justify-between items-center mb-2">
-        <div>
-          <label class="mr-1">Ordenar por:</label>
-          <select id="wanted-sort" class="border rounded p-1 text-sm">
-            <option value="random">Aleatório</option>
-            <option value="name">Nome</option>
-            <option value="setid">Número</option>
-            <option value="passcode">Código</option>
-            <option value="price">Preço</option>
-            <option value="quantity">Quantidade</option>
-          </select>
-          <button id="wanted-order" class="ml-1 bg-gray-200 px-2 rounded text-sm">Ascendente</button>
-        </div>
+      <div class="flex items-center gap-2 mb-2">
+        <label>Ordenar por:</label>
+        <select id="wanted-sort" class="border rounded p-1 text-sm"></select>
+        <button id="wanted-order" class="bg-gray-200 px-2 rounded text-sm">Ascendente</button>
       </div>
       <div id="wanted-list" class="grid gap-4 h-[70vh] overflow-y-auto"></div>
     </div>
   </div>
 
+  <!-- Card Details Modal -->
+  <div id="card-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-xl shadow-lg p-6 max-w-lg w-full relative">
+      <button id="modal-close" class="absolute top-2 right-2 text-gray-600 hover:text-black">&times;</button>
+      <div id="modal-content"></div>
+    </div>
+  </div>
+
   <script>
-    const sellingList = document.getElementById("selling-list");
-    const wantedList = document.getElementById("wanted-list");
-
-    const sellingSortSelect = document.getElementById("selling-sort");
-    const sellingOrderBtn = document.getElementById("selling-order");
-    const wantedSortSelect = document.getElementById("wanted-sort");
-    const wantedOrderBtn = document.getElementById("wanted-order");
-
-    const sellingSearch = document.getElementById("selling-search");
-    const wantedSearch = document.getElementById("wanted-search");
-
     const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQpJVCUhWxyH_TM4-83ra9FXLCES8yqIBVQy3ed6OoVZwbSH4LkoVh7gBn6K2iz32cQNftsj1E-UIiK/pub?output=csv";
 
     let sellingCards = [];
     let wantedCards = [];
 
+    // ---------- Helpers ----------
     async function loadCsv(url) {
       return new Promise((resolve, reject) => {
         Papa.parse(url, {
           download: true,
-          header: false,
+          header: true,
           skipEmptyLines: true,
           complete: results => resolve(results.data),
           error: err => reject(err)
@@ -86,138 +62,185 @@
       });
     }
 
-    function createCardElement({name, setid, passcode, price, customImage, quantity}) {
-      if (!name?.trim()) return null;
-
+    function createCardElement(card) {
+      if (!card.name) return null;
       let image = "";
-      if (passcode?.trim()) {
-        // Remove leading zeros only for the image URL
-        const trimmedPasscode = passcode.trim().replace(/^0+/, "");
-        image = `https://images.ygoprodeck.com/images/cards/${trimmedPasscode}.jpg`;
+      if (card.passcode) {
+        const code = card.passcode.replace(/^0+/, "");
+        image = `https://images.ygoprodeck.com/images/cards/${code}.jpg`;
       }
-      if (customImage?.trim()) image = customImage.trim();
+      if (card.customImage) image = card.customImage;
 
-      const cardEl = document.createElement("div");
-      cardEl.className = "bg-white rounded-xl shadow-md p-3 flex gap-3 items-center";
-
-      cardEl.innerHTML = `
-        <img src="${image}" alt="${name}" class="w-20 h-28 object-cover rounded">
+      const div = document.createElement("div");
+      div.className = "bg-white rounded-xl shadow-md p-3 flex gap-3 items-center cursor-pointer";
+      div.innerHTML = `
+        <img src="${image}" alt="${card.name}" class="w-20 h-28 object-cover rounded">
         <div>
-          <h4 class="font-bold">${name}</h4>
-          ${setid?.trim() ? `<p class="text-sm text-gray-600">Número: ${setid}</p>` : ""}
-          ${passcode?.trim() ? `<p class="text-sm text-gray-600">Código: ${passcode}</p>` : ""}
-          ${price?.trim() ? `<p class="text-sm text-green-600">R$ ${price}</p>` : ""}
-          ${quantity?.trim() ? `<p class="text-sm text-blue-600">Quantidade: ${quantity}</p>` : ""}
+          <h4 class="font-bold">${card.name}</h4>
+          ${card.setid ? `<p class="text-sm text-gray-600">Número: ${card.setid}</p>` : ""}
+          ${card.passcode ? `<p class="text-sm text-gray-600">Código: ${card.passcode}</p>` : ""}
+          ${card.price ? `<p class="text-sm text-green-600">R$ ${card.price}</p>` : ""}
+          ${card.quantity ? `<p class="text-sm text-blue-600">Quantidade: ${card.quantity}</p>` : ""}
         </div>
       `;
-      return cardEl;
+      return div;
     }
 
-    function renderList(listEl, cards, searchTerm = "") {
-      listEl.innerHTML = "";
-      const term = searchTerm.toLowerCase();
-      cards.forEach(card => {
-        const matches = Object.values(card).some(value => (value || "").toLowerCase().includes(term));
-        if (matches) {
-          const el = createCardElement(card);
-          if (el) listEl.appendChild(el);
-        }
-      });
-    }
-
-    function sortCards(cards, key, ascending=true) {
-      if (key === "random") {
-        return cards.sort(() => Math.random() - 0.5);
-      }
-      return cards.sort((a, b) => {
-        let valA = a[key]?.trim() || "";
-        let valB = b[key]?.trim() || "";
-        if (key === "price" || key === "passcode" || key === "quantity") {
+    function sortCards(cards, key, ascending = true) {
+      if (key === "random") return [...cards].sort(() => Math.random() - 0.5);
+      return [...cards].sort((a, b) => {
+        let valA = a[key] || "";
+        let valB = b[key] || "";
+        if (["price", "passcode", "quantity"].includes(key)) {
           valA = parseFloat(valA) || 0;
           valB = parseFloat(valB) || 0;
         }
-        if (valA < valB) return ascending ? -1 : 1;
-        if (valA > valB) return ascending ? 1 : -1;
-        return 0;
+        return ascending ? (valA > valB ? 1 : -1) : (valA < valB ? 1 : -1);
       });
     }
 
-    async function renderCards() {
+    async function fetchCardDetails(passcode) {
+      if (!passcode) return null;
+      try {
+        const code = passcode.replace(/^0+/, "");
+        const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${code}`);
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.data[0];
+      } catch {
+        return null;
+      }
+    }
+
+    async function showCardModal(card) {
+      const modal = document.getElementById("card-modal");
+      const modalContent = document.getElementById("modal-content");
+      modal.classList.remove("hidden");
+      modalContent.innerHTML = "<p>Carregando...</p>";
+
+      const details = await fetchCardDetails(card.passcode);
+      if (details) {
+        modalContent.innerHTML = `
+          <h2 class="text-xl font-bold mb-2">${details.name}</h2>
+          <img src="${details.card_images[0].image_url}" alt="${details.name}" class="w-40 h-56 object-cover mb-4 rounded">
+          <p><strong>Tipo:</strong> ${details.type}</p>
+          <p><strong>Level/Rank:</strong> ${details.level || details.rank || "N/A"}</p>
+          <p><strong>Ataque:</strong> ${details.atk ?? "N/A"}</p>
+          <p><strong>Defesa:</strong> ${details.def ?? "N/A"}</p>
+          <p><strong>Descrição:</strong> ${details.desc}</p>
+          <a href="https://ygoprodeck.com/card/?search=${details.name}" target="_blank" class="text-blue-600 underline">Mais informações</a>
+        `;
+      } else {
+        modalContent.innerHTML = `
+          <h2 class="text-xl font-bold mb-2">${card.name}</h2>
+          <img src="${card.customImage || `https://images.ygoprodeck.com/images/cards/${card.passcode?.replace(/^0+/, "")}.jpg`}" alt="${card.name}" class="w-40 h-56 object-cover mb-4 rounded">
+          <p>Informações detalhadas não encontradas.</p>
+        `;
+      }
+    }
+
+    // ---------- Rendering ----------
+    function renderSection({cards, listEl, searchInput, sortSelect, orderBtn}) {
+      function update() {
+        const search = searchInput.value.toLowerCase();
+        const sorted = sortCards(cards, sortSelect.value, orderBtn.textContent === "Ascendente");
+        listEl.innerHTML = "";
+        sorted.forEach(card => {
+          const values = Object.values(card).join(" ").toLowerCase();
+          if (values.includes(search)) {
+            const el = createCardElement(card);
+            if (el) {
+              el.addEventListener("click", () => showCardModal(card));
+              listEl.appendChild(el);
+            }
+          }
+        });
+      }
+      sortSelect.addEventListener("change", update);
+      orderBtn.addEventListener("click", () => {
+        orderBtn.textContent = orderBtn.textContent === "Ascendente" ? "Descendente" : "Ascendente";
+        update();
+      });
+      searchInput.addEventListener("input", update);
+      update(); // initial
+    }
+
+    // ---------- Init ----------
+    document.getElementById("modal-close").addEventListener("click", () => {
+      document.getElementById("card-modal").classList.add("hidden");
+      document.getElementById("modal-content").innerHTML = "";
+    });
+
+    (async function init() {
       const rows = await loadCsv(csvUrl);
-      if (rows.length === 0) return;
+      if (!rows.length) return;
 
-      const headers = rows[0].map(h => h.trim().toLowerCase());
-      const getIndex = name => headers.indexOf(name.toLowerCase());
-      const map = {
-        sellingName: getIndex("selling name"),
-        sellingSetID: getIndex("selling set id"),
-        sellingPasscode: getIndex("selling passcode"),
-        sellingPrice: getIndex("selling price"),
-        sellingImage: getIndex("selling image url"),
-        sellingQuantity: getIndex("selling quantity"), // NEW
+      // Normalize headers → lowercase + no spaces
+      const normalizedRows = rows.map(r => {
+        const obj = {};
+        for (const key in r) {
+          const norm = key.trim().toLowerCase().replace(/\s+/g, "");
+          obj[norm] = r[key];
+        }
+        return obj;
+      });
 
-        wantedName: getIndex("wanted name"),
-        wantedSetID: getIndex("wanted set id"),
-        wantedPasscode: getIndex("wanted passcode"),
-        wantedPrice: getIndex("wanted price"),
-        wantedImage: getIndex("wanted image url"),
-        wantedQuantity: getIndex("wanted quantity") // NEW
-      };
+      // Build card arrays
+      sellingCards = normalizedRows.map(r => ({
+        name: r["sellingname"] || "",
+        setid: r["sellingsetid"] || "",
+        passcode: r["sellingpasscode"] || "",
+        price: r["sellingprice"] || "",
+        customImage: r["sellingimageurl"] || "",
+        quantity: r["sellingquantity"] || ""
+      })).filter(c => c.name);
 
-      sellingCards = [];
-      wantedCards = [];
+      wantedCards = normalizedRows.map(r => ({
+        name: r["wantedname"] || "",
+        setid: r["wantedsetid"] || "",
+        passcode: r["wantedpasscode"] || "",
+        price: r["wantedprice"] || "",
+        customImage: r["wantedimageurl"] || "",
+        quantity: r["wantedquantity"] || ""
+      })).filter(c => c.name);
 
-      rows.slice(1).forEach(cols => {
-        sellingCards.push({
-          name: map.sellingName >= 0 ? cols[map.sellingName] : "",
-          setid: map.sellingSetID >= 0 ? cols[map.sellingSetID] : "",
-          passcode: map.sellingPasscode >= 0 ? cols[map.sellingPasscode] : "",
-          price: map.sellingPrice >= 0 ? cols[map.sellingPrice] : "",
-          customImage: map.sellingImage >= 0 ? cols[map.sellingImage] : "",
-          quantity: map.sellingQuantity >= 0 ? cols[map.sellingQuantity] : ""
+      // Fill sort dropdowns
+      const options = [
+        {value: "random", label: "Aleatório"},
+        {value: "name", label: "Nome"},
+        {value: "setid", label: "Número"},
+        {value: "passcode", label: "Código"},
+        {value: "price", label: "Preço"},
+        {value: "quantity", label: "Quantidade"}
+      ];
+      ["selling-sort", "wanted-sort"].forEach(id => {
+        const select = document.getElementById(id);
+        select.innerHTML = ""; // clear previous
+        options.forEach(o => {
+          const opt = document.createElement("option");
+          opt.value = o.value;
+          opt.textContent = o.label;
+          select.appendChild(opt);
         });
-        wantedCards.push({
-          name: map.wantedName >= 0 ? cols[map.wantedName] : "",
-          setid: map.wantedSetID >= 0 ? cols[map.wantedSetID] : "",
-          passcode: map.wantedPasscode >= 0 ? cols[map.wantedPasscode] : "",
-          price: map.wantedPrice >= 0 ? cols[map.wantedPrice] : "",
-          customImage: map.wantedImage >= 0 ? cols[map.wantedImage] : "",
-          quantity: map.wantedQuantity >= 0 ? cols[map.wantedQuantity] : ""
-        });
       });
 
-      // Initial render in random order
-      renderList(sellingList, sortCards(sellingCards, "random"));
-      renderList(wantedList, sortCards(wantedCards, "random"));
-    }
-
-    function setupSortingAndSearch() {
-      // Selling
-      const updateSelling = () => {
-        const sorted = sortCards([...sellingCards], sellingSortSelect.value, sellingOrderBtn.textContent==="Ascendente");
-        renderList(sellingList, sorted, sellingSearch.value);
-      };
-      sellingSortSelect.addEventListener("change", updateSelling);
-      sellingOrderBtn.addEventListener("click", () => {
-        sellingOrderBtn.textContent = sellingOrderBtn.textContent==="Ascendente"?"Descendente":"Ascendente";
-        updateSelling();
+      // Render both sections
+      renderSection({
+        cards: sellingCards,
+        listEl: document.getElementById("selling-list"),
+        searchInput: document.getElementById("selling-search"),
+        sortSelect: document.getElementById("selling-sort"),
+        orderBtn: document.getElementById("selling-order")
       });
-      sellingSearch.addEventListener("input", updateSelling);
 
-      // Wanted
-      const updateWanted = () => {
-        const sorted = sortCards([...wantedCards], wantedSortSelect.value, wantedOrderBtn.textContent==="Ascendente");
-        renderList(wantedList, sorted, wantedSearch.value);
-      };
-      wantedSortSelect.addEventListener("change", updateWanted);
-      wantedOrderBtn.addEventListener("click", () => {
-        wantedOrderBtn.textContent = wantedOrderBtn.textContent==="Ascendente"?"Descendente":"Ascendente";
-        updateWanted();
+      renderSection({
+        cards: wantedCards,
+        listEl: document.getElementById("wanted-list"),
+        searchInput: document.getElementById("wanted-search"),
+        sortSelect: document.getElementById("wanted-sort"),
+        orderBtn: document.getElementById("wanted-order")
       });
-      wantedSearch.addEventListener("input", updateWanted);
-    }
-
-    renderCards().then(setupSortingAndSearch);
+    })();
   </script>
 </body>
 </html>
