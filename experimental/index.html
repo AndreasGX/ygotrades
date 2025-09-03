@@ -57,14 +57,6 @@
     </div>
   </div>
 
-  <!-- Card Details Modal -->
-  <div id="card-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-    <div class="bg-white rounded-xl shadow-lg p-6 max-w-lg w-full relative">
-      <button id="modal-close" class="absolute top-2 right-2 text-gray-600 hover:text-black">&times;</button>
-      <div id="modal-content"></div>
-    </div>
-  </div>
-
   <script>
     const sellingList = document.getElementById("selling-list");
     const wantedList = document.getElementById("wanted-list");
@@ -76,15 +68,6 @@
 
     const sellingSearch = document.getElementById("selling-search");
     const wantedSearch = document.getElementById("wanted-search");
-
-    const modal = document.getElementById("card-modal");
-    const modalContent = document.getElementById("modal-content");
-    const modalClose = document.getElementById("modal-close");
-
-    modalClose.addEventListener("click", () => {
-      modal.classList.add("hidden");
-      modalContent.innerHTML = "";
-    });
 
     const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQpJVCUhWxyH_TM4-83ra9FXLCES8yqIBVQy3ed6OoVZwbSH4LkoVh7gBn6K2iz32cQNftsj1E-UIiK/pub?output=csv";
 
@@ -103,97 +86,79 @@
       });
     }
 
-    function createCardElement({name, setid, passcode, price, customImage, quantity}) {
+    // Fetch Portuguese card info from Yugipedia
+    async function fetchYugipediaCardInfo(ptName) {
+      // Search for the correct page using the Portuguese card name
+      const searchUrl = `https://yugipedia.com/api.php?action=query&format=json&list=search&srsearch=${encodeURIComponent(ptName)}&utf8=1&srlimit=1`;
+      try {
+        const searchRes = await fetch(searchUrl);
+        const searchData = await searchRes.json();
+        const result = searchData?.query?.search?.[0];
+        if (!result) return { description: "", image: "" };
+
+        // Now query the page for description and image
+        const pageId = result.pageid;
+        const pageUrl = `https://yugipedia.com/api.php?action=query&format=json&prop=extracts|pageimages&exintro=1&explaintext=1&pithumbsize=300&pageids=${pageId}`;
+        const pageRes = await fetch(pageUrl);
+        const pageData = await pageRes.json();
+        const page = pageData.query.pages[pageId];
+
+        // The extract will likely be in English, but Yugipedia usually lists Portuguese name in the infobox
+        // For Portuguese sets, prefer the CSV name (assumed to be in Portuguese)
+        const description = page.extract || "";
+        const image = page.thumbnail?.source || "";
+
+        return { description, image };
+      } catch (err) {
+        return { description: "", image: "" };
+      }
+    }
+
+    // Returns a promise that resolves to a card element
+    async function createCardElementYugipedia({name, setid, passcode, price, customImage, quantity}) {
       if (!name?.trim()) return null;
 
+      // Always use the Portuguese name for the card
       let image = "";
-      if (passcode?.trim()) {
-        const trimmedPasscode = passcode.trim().replace(/^0+/, "");
-        image = `https://images.ygoprodeck.com/images/cards/${trimmedPasscode}.jpg`;
+      let description = "";
+
+      // Prefer custom CSV image if present
+      if (customImage?.trim()) {
+        image = customImage.trim();
+      } else {
+        // Fetch from Yugipedia
+        const info = await fetchYugipediaCardInfo(name);
+        image = info.image || "";
+        description = info.description || "";
       }
-      if (customImage?.trim()) image = customImage.trim();
 
       const cardEl = document.createElement("div");
-      cardEl.className = "bg-white rounded-xl shadow-md p-3 flex gap-3 items-center cursor-pointer";
+      cardEl.className = "bg-white rounded-xl shadow-md p-3 flex gap-3 items-center";
 
       cardEl.innerHTML = `
         <img src="${image}" alt="${name}" class="w-20 h-28 object-cover rounded">
         <div>
           <h4 class="font-bold">${name}</h4>
           ${setid?.trim() ? `<p class="text-sm text-gray-600">Número: ${setid}</p>` : ""}
-          ${passcode?.trim() ? `<p class="text-sm text-gray-600">Código: ${passcode}</p>` : ""}
           ${price?.trim() ? `<p class="text-sm text-green-600">R$ ${price}</p>` : ""}
           ${quantity?.trim() ? `<p class="text-sm text-blue-600">Quantidade: ${quantity}</p>` : ""}
+          ${description ? `<p class="text-sm mt-2 text-gray-800">${description}</p>` : ""}
         </div>
       `;
       return cardEl;
     }
 
-    async function fetchCardDetails(passcode) {
-      try {
-        if (!passcode) return null;
-        const trimmedPasscode = passcode.replace(/^0+/, "");
-        const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${trimmedPasscode}`);
-        if (!res.ok) throw new Error("Card not found");
-        const data = await res.json();
-        return data.data[0];
-      } catch (err) {
-        console.error(err);
-        return null;
-      }
-    }
-
-    async function showCardModal(card) {
-      modal.classList.remove("hidden");
-      modalContent.innerHTML = "<p>Carregando...</p>";
-
-      const details = await fetchCardDetails(card.passcode);
-
-      if (details) {
-        modalContent.innerHTML = `
-          <h2 class="text-xl font-bold mb-2">${details.name}</h2>
-          <img src="${details.card_images[0].image_url}" alt="${details.name}" class="w-40 h-56 object-cover mb-4 rounded">
-          <p><strong>Tipo:</strong> ${details.type}</p>
-          <p><strong>Level/Rank:</strong> ${details.level || details.rank || "N/A"}</p>
-          <p><strong>Ataque:</strong> ${details.atk !== undefined ? details.atk : "N/A"}</p>
-          <p><strong>Defesa:</strong> ${details.def !== undefined ? details.def : "N/A"}</p>
-          <p><strong>Descrição:</strong> ${details.desc}</p>
-          <a href="https://ygoprodeck.com/card/?search=${details.name}" target="_blank" class="text-blue-600 underline">Mais informações</a>
-        `;
-      } else {
-        modalContent.innerHTML = `
-          <h2 class="text-xl font-bold mb-2">${card.name}</h2>
-          <img src="${card.customImage || `https://images.ygoprodeck.com/images/cards/${card.passcode.replace(/^0+/, "")}.jpg`}" alt="${card.name}" class="w-40 h-56 object-cover mb-4 rounded">
-          <p>Informações detalhadas não encontradas.</p>
-        `;
-      }
-    }
-
-    function addCardClickListeners(listEl, cards) {
-      listEl.querySelectorAll("div").forEach((cardEl, index) => {
-        cardEl.addEventListener("click", () => {
-          showCardModal(cards[index]);
-        });
-      });
-    }
-
-    function renderList(listEl, cards, searchTerm = "") {
+    // Async render list
+    async function renderListYugipedia(listEl, cards, searchTerm = "") {
       listEl.innerHTML = "";
       const term = searchTerm.toLowerCase();
-      const visibleCards = [];
-
-      cards.forEach(card => {
+      for (const card of cards) {
         const matches = Object.values(card).some(value => (value || "").toLowerCase().includes(term));
         if (matches) {
-          const el = createCardElement(card);
-          if (el) {
-            listEl.appendChild(el);
-            visibleCards.push(card);
-          }
+          const el = await createCardElementYugipedia(card);
+          if (el) listEl.appendChild(el);
         }
-      });
-
-      addCardClickListeners(listEl, visibleCards);
+      }
     }
 
     function sortCards(cards, key, ascending=true) {
@@ -213,7 +178,7 @@
       });
     }
 
-    async function renderCards() {
+    async function renderCardsYugipedia() {
       const rows = await loadCsv(csvUrl);
       if (rows.length === 0) return;
 
@@ -257,35 +222,37 @@
         });
       });
 
-      renderList(sellingList, sortCards(sellingCards, "random"));
-      renderList(wantedList, sortCards(wantedCards, "random"));
+      await renderListYugipedia(sellingList, sortCards(sellingCards, "random"));
+      await renderListYugipedia(wantedList, sortCards(wantedCards, "random"));
     }
 
-    function setupSortingAndSearch() {
-      const updateSelling = () => {
-        const sorted = sortCards([...sellingCards], sellingSortSelect.value, sellingOrderBtn.textContent==="Ascendente");
-        renderList(sellingList, sorted, sellingSearch.value);
+    function setupSortingAndSearchYugipedia() {
+      // Selling
+      const updateSelling = async () => {
+        const sorted = sortCards([...sellingCards], sellingSortSelect.value, sellingOrderBtn.textContent === "Ascendente");
+        await renderListYugipedia(sellingList, sorted, sellingSearch.value);
       };
       sellingSortSelect.addEventListener("change", updateSelling);
       sellingOrderBtn.addEventListener("click", () => {
-        sellingOrderBtn.textContent = sellingOrderBtn.textContent==="Ascendente"?"Descendente":"Ascendente";
+        sellingOrderBtn.textContent = sellingOrderBtn.textContent === "Ascendente" ? "Descendente" : "Ascendente";
         updateSelling();
       });
       sellingSearch.addEventListener("input", updateSelling);
 
-      const updateWanted = () => {
-        const sorted = sortCards([...wantedCards], wantedSortSelect.value, wantedOrderBtn.textContent==="Ascendente");
-        renderList(wantedList, sorted, wantedSearch.value);
+      // Wanted
+      const updateWanted = async () => {
+        const sorted = sortCards([...wantedCards], wantedSortSelect.value, wantedOrderBtn.textContent === "Ascendente");
+        await renderListYugipedia(wantedList, sorted, wantedSearch.value);
       };
       wantedSortSelect.addEventListener("change", updateWanted);
       wantedOrderBtn.addEventListener("click", () => {
-        wantedOrderBtn.textContent = wantedOrderBtn.textContent==="Ascendente"?"Descendente":"Ascendente";
+        wantedOrderBtn.textContent = wantedOrderBtn.textContent === "Ascendente" ? "Descendente" : "Ascendente";
         updateWanted();
       });
       wantedSearch.addEventListener("input", updateWanted);
     }
 
-    renderCards().then(setupSortingAndSearch);
+    renderCardsYugipedia().then(setupSortingAndSearchYugipedia);
   </script>
 </body>
 </html>
