@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Lista de Trocas do Tony</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-6 pb-24"> <!-- add bottom padding for music player -->
+  <h1 class="text-3xl font-bold mb-6 text-center">Lista de Trocas do Tony</h1>
+  
+  <div class="grid grid-cols-2 gap-8">
+    <!-- Selling/Trading -->
+    <div>
+      <div class="flex justify-between items-center mb-2">
+        <h2 class="text-xl font-semibold">Tenho</h2>
+      </div>
+      <input id="selling-search" type="text" placeholder="Pesquisar..." class="w-full mb-2 border p-1 rounded text-sm">
+      <div class="flex justify-between items-center mb-2">
+        <div>
+          <label class="mr-1">Ordenar por:</label>
+          <select id="selling-sort" class="border rounded p-1 text-sm">
+            <option value="random">Aleatório</option>
+            <option value="name">Nome</option>
+            <option value="setid">Número</option>
+            <option value="passcode">Código</option>
+            <option value="price">Preço</option>
+            <option value="quantity">Quantidade</option>
+          </select>
+          <button id="selling-order" class="ml-1 bg-gray-200 px-2 rounded text-sm">Ascendente</button>
+        </div>
+      </div>
+      <div id="selling-list" class="grid gap-4 h-[70vh] overflow-y-auto"></div>
+    </div>
+    
+    <!-- Looking For -->
+    <div>
+      <div class="flex justify-between items-center mb-2">
+        <h2 class="text-xl font-semibold">Quero</h2>
+      </div>
+      <input id="wanted-search" type="text" placeholder="Pesquisar..." class="w-full mb-2 border p-1 rounded text-sm">
+      <div class="flex justify-between items-center mb-2">
+        <div>
+          <label class="mr-1">Ordenar por:</label>
+          <select id="wanted-sort" class="border rounded p-1 text-sm">
+            <option value="random">Aleatório</option>
+            <option value="name">Nome</option>
+            <option value="setid">Número</option>
+            <option value="passcode">Código</option>
+            <option value="price">Preço</option>
+            <option value="quantity">Quantidade</option>
+          </select>
+          <button id="wanted-order" class="ml-1 bg-gray-200 px-2 rounded text-sm">Ascendente</button>
+        </div>
+      </div>
+      <div id="wanted-list" class="grid gap-4 h-[70vh] overflow-y-auto"></div>
+    </div>
+  </div>
+
+  <!-- Card Details Modal -->
+  <div id="card-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-xl shadow-lg p-6 max-w-lg w-full relative">
+      <button id="modal-close" class="absolute top-2 right-2 text-gray-600 hover:text-black">&times;</button>
+      <div id="modal-content"></div>
+    </div>
+  </div>
+
+  <!-- Music Player -->
+  <div class="fixed bottom-0 left-0 w-full bg-gray-800 text-white flex items-center justify-between p-2 z-50">
+    <audio id="background-music" controls class="w-full">
+      <source src="https://example.com/your-music.mp3" type="audio/mpeg">
+      Seu navegador não suporta o elemento de áudio.
+    </audio>
+    <button id="mute-btn" class="ml-2 px-2 py-1 bg-gray-600 rounded hover:bg-gray-500">Mudo</button>
+  </div>
+
+  <script>
+    const sellingList = document.getElementById("selling-list");
+    const wantedList = document.getElementById("wanted-list");
+
+    const sellingSortSelect = document.getElementById("selling-sort");
+    const sellingOrderBtn = document.getElementById("selling-order");
+    const wantedSortSelect = document.getElementById("wanted-sort");
+    const wantedOrderBtn = document.getElementById("wanted-order");
+
+    const sellingSearch = document.getElementById("selling-search");
+    const wantedSearch = document.getElementById("wanted-search");
+
+    const modal = document.getElementById("card-modal");
+    const modalContent = document.getElementById("modal-content");
+    const modalClose = document.getElementById("modal-close");
+
+    modalClose.addEventListener("click", () => {
+      modal.classList.add("hidden");
+      modalContent.innerHTML = "";
+    });
+
+    const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQpJVCUhWxyH_TM4-83ra9FXLCES8yqIBVQy3ed6OoVZwbSH4LkoVh7gBn6K2iz32cQNftsj1E-UIiK/pub?output=csv";
+
+    let sellingCards = [];
+    let wantedCards = [];
+
+    async function loadCsv(url) {
+      return new Promise((resolve, reject) => {
+        Papa.parse(url, {
+          download: true,
+          header: false,
+          skipEmptyLines: true,
+          complete: results => resolve(results.data),
+          error: err => reject(err)
+        });
+      });
+    }
+
+    function createCardElement({name, setid, passcode, price, customImage, quantity}) {
+      if (!name?.trim()) return null;
+
+      let image = "";
+      if (passcode?.trim()) {
+        const trimmedPasscode = passcode.trim().replace(/^0+/, "");
+        image = `https://images.ygoprodeck.com/images/cards/${trimmedPasscode}.jpg`;
+      }
+      if (customImage?.trim()) image = customImage.trim();
+
+      const cardEl = document.createElement("div");
+      cardEl.className = "bg-white rounded-xl shadow-md p-3 flex gap-3 items-center cursor-pointer";
+
+      cardEl.innerHTML = `
+        <img src="${image}" alt="${name}" class="w-20 h-28 object-cover rounded">
+        <div>
+          <h4 class="font-bold">${name}</h4>
+          ${setid?.trim() ? `<p class="text-sm text-gray-600">Número: ${setid}</p>` : ""}
+          ${passcode?.trim() ? `<p class="text-sm text-gray-600">Código: ${passcode}</p>` : ""}
+          ${price?.trim() ? `<p class="text-sm text-green-600">R$ ${price}</p>` : ""}
+          ${quantity?.trim() ? `<p class="text-sm text-blue-600">Quantidade: ${quantity}</p>` : ""}
+        </div>
+      `;
+      return cardEl;
+    }
+
+    async function fetchCardDetails(passcode) {
+      try {
+        if (!passcode) return null;
+        const trimmedPasscode = passcode.replace(/^0+/, "");
+        const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${trimmedPasscode}`);
+        if (!res.ok) throw new Error("Card not found");
+        const data = await res.json();
+        return data.data[0];
+      } catch (err) {
+        console.error(err);
+        return null;
+      }
+    }
+
+    async function showCardModal(card) {
+      modal.classList.remove("hidden");
+      modalContent.innerHTML = "<p>Carregando...</p>";
+
+      const details = await fetchCardDetails(card.passcode);
+
+      if (details) {
+        modalContent.innerHTML = `
+          <h2 class="text-xl font-bold mb-2">${details.name}</h2>
+          <img src="${details.card_images[0].image_url}" alt="${details.name}" class="w-40 h-56 object-cover mb-4 rounded">
+          <p><strong>Tipo:</strong> ${details.type}</p>
+          <p><strong>Level/Rank:</strong> ${details.level || details.rank || "N/A"}</p>
+          <p><strong>Ataque:</strong> ${details.atk !== undefined ? details.atk : "N/A"}</p>
+          <p><strong>Defesa:</strong> ${details.def !== undefined ? details.def : "N/A"}</p>
+          <p><strong>Descrição:</strong> ${details.desc}</p>
+          <a href="https://ygoprodeck.com/card/?search=${details.name}" target="_blank" class="text-blue-600 underline">Mais informações</a>
+        `;
+      } else {
+        modalContent.innerHTML = `
+          <h2 class="text-xl font-bold mb-2">${card.name}</h2>
+          <img src="${card.customImage || `https://images.ygoprodeck.com/images/cards/${card.passcode.replace(/^0+/, "")}.jpg`}" alt="${card.name}" class="w-40 h-56 object-cover mb-4 rounded">
+          <p>Informações detalhadas não encontradas.</p>
+        `;
+      }
+    }
+
+    function addCardClickListeners(listEl, cards) {
+      listEl.querySelectorAll("div").forEach((cardEl, index) => {
+        cardEl.addEventListener("click", () => {
+          showCardModal(cards[index]);
+        });
+      });
+    }
+
+    function renderList(listEl, cards, searchTerm = "") {
+      listEl.innerHTML = "";
+      const term = searchTerm.toLowerCase();
+      const visibleCards = [];
+
+      cards.forEach(card => {
+        const matches = Object.values(card).some(value => (value || "").toLowerCase().includes(term));
+        if (matches) {
+          const el = createCardElement(card);
+          if (el) {
+            listEl.appendChild(el);
+            visibleCards.push(card);
+          }
+        }
+      });
+
+      addCardClickListeners(listEl, visibleCards);
+    }
+
+    function sortCards(cards, key, ascending=true) {
+      if (key === "random") {
+        return cards.sort(() => Math.random() - 0.5);
+      }
+      return cards.sort((a, b) => {
+        let valA = a[key]?.trim() || "";
+        let valB = b[key]?.trim() || "";
+        if (key === "price" || key === "passcode" || key === "quantity") {
+          valA = parseFloat(valA) || 0;
+          valB = parseFloat(valB) || 0;
+        }
+        if (valA < valB) return ascending ? -1 : 1;
+        if (valA > valB) return ascending ? 1 : -1;
+        return 0;
+      });
+    }
+
+    async function renderCards() {
+      const rows = await loadCsv(csvUrl);
+      if (rows.length === 0) return;
+
+      const headers = rows[0].map(h => h.trim().toLowerCase());
+      const getIndex = name => headers.indexOf(name.toLowerCase());
+      const map = {
+        sellingName: getIndex("selling name"),
+        sellingSetID: getIndex("selling set id"),
+        sellingPasscode: getIndex("selling passcode"),
+        sellingPrice: getIndex("selling price"),
+        sellingImage: getIndex("selling image url"),
+        sellingQuantity: getIndex("selling quantity"),
+
+        wantedName: getIndex("wanted name"),
+        wantedSetID: getIndex("wanted set id"),
+        wantedPasscode: getIndex("wanted passcode"),
+        wantedPrice: getIndex("wanted price"),
+        wantedImage: getIndex("wanted image url"),
+        wantedQuantity: getIndex("wanted quantity")
+      };
+
+      sellingCards = [];
+      wantedCards = [];
+
+      rows.slice(1).forEach(cols => {
+        sellingCards.push({
+          name: map.sellingName >= 0 ? cols[map.sellingName] : "",
+          setid: map.sellingSetID >= 0 ? cols[map.sellingSetID] : "",
+          passcode: map.sellingPasscode >= 0 ? cols[map.sellingPasscode] : "",
+          price: map.sellingPrice >= 0 ? cols[map.sellingPrice] : "",
+          customImage: map.sellingImage >= 0 ? cols[map.sellingImage] : "",
+          quantity: map.sellingQuantity >= 0 ? cols[map.sellingQuantity] : ""
+        });
+        wantedCards.push({
+          name: map.wantedName >= 0 ? cols[map.wantedName] : "",
+          setid: map.wantedSetID >= 0 ? cols[map.wantedSetID] : "",
+          passcode: map.wantedPasscode >= 0 ? cols[map.wantedPasscode] : "",
+          price: map.wantedPrice >= 0 ? cols[map.wantedPrice] : "",
+          customImage: map.wantedImage >= 0 ? cols[map.wantedImage] : "",
+          quantity: map.wantedQuantity >= 0 ? cols[map.wantedQuantity] : ""
+        });
+      });
+
+      renderList(sellingList, sortCards(sellingCards, "random"));
+      renderList(wantedList, sortCards(wantedCards, "random"));
+    }
+
+    function setupSortingAndSearch() {
+      const updateSelling = () => {
+        const sorted = sortCards([...sellingCards], sellingSortSelect.value, sellingOrderBtn.textContent==="Ascendente");
+        renderList(sellingList, sorted, sellingSearch.value);
+      };
+      sellingSortSelect.addEventListener("change", updateSelling);
+      sellingOrderBtn.addEventListener("click", () => {
+        sellingOrderBtn.textContent = sellingOrderBtn.textContent==="Ascendente"?"Descendente":"Ascendente";
+        updateSelling();
+      });
+      sellingSearch.addEventListener("input", updateSelling);
+
+      const updateWanted = () => {
+        const sorted = sortCards([...wantedCards], wantedSortSelect.value, wantedOrderBtn.textContent==="Ascendente");
+        renderList(wantedList, sorted, wantedSearch.value);
+      };
+      wantedSortSelect.addEventListener("change", updateWanted);
+      wantedOrderBtn.addEventListener("click", () => {
+        wantedOrderBtn.textContent = wantedOrderBtn.textContent==="Ascendente"?"Descendente":"Ascendente";
+        updateWanted();
+      });
+      wantedSearch.addEventListener("input", updateWanted);
+    }
+
+    renderCards().then(setupSortingAndSearch);
+
+    // Music player
+    const music = document.getElementById("background-music");
+    const muteBtn = document.getElementById("mute-btn");
+
+    muteBtn.addEventListener("click", () => {
+      music.muted = !music.muted;
+      muteBtn.textContent = music.muted ? "Desligar" : "Mudo";
+    });
+
+    music.volume = 0.5;
+    music.loop = true;
+    // music.play().catch(() => console.log("Autoplay bloqueado pelo navegador"));
+  </script>
+</body>
+</html>
