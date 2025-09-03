@@ -6,7 +6,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
-<body class="bg-gray-100 min-h-screen p-6 pb-24"> <!-- add bottom padding for music player -->
+<body class="bg-gray-100 min-h-screen p-6">
   <h1 class="text-3xl font-bold mb-6 text-center">Lista de Trocas do Tony</h1>
   
   <div class="grid grid-cols-2 gap-8">
@@ -63,15 +63,6 @@
       <button id="modal-close" class="absolute top-2 right-2 text-gray-600 hover:text-black">&times;</button>
       <div id="modal-content"></div>
     </div>
-  </div>
-
-  <!-- Music Player -->
-  <div class="fixed bottom-0 left-0 w-full bg-gray-800 text-white flex items-center justify-between p-2 z-50">
-    <audio id="background-music" controls class="w-full">
-      <source src="https://example.com/your-music.mp3" type="audio/mpeg">
-      Seu navegador não suporta o elemento de áudio.
-    </audio>
-    <button id="mute-btn" class="ml-2 px-2 py-1 bg-gray-600 rounded hover:bg-gray-500">Mudo</button>
   </div>
 
   <script>
@@ -295,19 +286,6 @@
     }
 
     renderCards().then(setupSortingAndSearch);
-
-    // Music player
-    const music = document.getElementById("background-music");
-    const muteBtn = document.getElementById("mute-btn");
-
-    muteBtn.addEventListener("click", () => {
-      music.muted = !music.muted;
-      muteBtn.textContent = music.muted ? "Desligar" : "Mudo";
-    });
-
-    music.volume = 0.5;
-    music.loop = true;
-    // music.play().catch(() => console.log("Autoplay bloqueado pelo navegador"));
   </script>
 </body>
 </html>
