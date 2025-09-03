@@ -104,10 +104,10 @@
         <img src="${image}" alt="${name}" class="w-20 h-28 object-cover rounded">
         <div>
           <h4 class="font-bold">${name}</h4>
-          ${setid?.trim() ? `<p class="text-sm text-gray-600">Set: ${setid}</p>` : ""}
-          ${passcode?.trim() ? `<p class="text-sm text-gray-600">Passcode: ${passcode}</p>` : ""}
-          ${price?.trim() ? `<p class="text-sm text-green-600">$${price}</p>` : ""}
-          ${quantity?.trim() ? `<p class="text-sm text-blue-600">Quantity: ${quantity}</p>` : ""}
+          ${setid?.trim() ? `<p class="text-sm text-gray-600">Número: ${setid}</p>` : ""}
+          ${passcode?.trim() ? `<p class="text-sm text-gray-600">Código: ${passcode}</p>` : ""}
+          ${price?.trim() ? `<p class="text-sm text-green-600">R$ ${price}</p>` : ""}
+          ${quantity?.trim() ? `<p class="text-sm text-blue-600">Quantidade: ${quantity}</p>` : ""}
         </div>
       `;
       return cardEl;
