@@ -1,33 +1,33 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Yu-Gi-Oh! Trade & Wish List</title>
+  <title>Lista de Trocas do Tony</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
 <body class="bg-gray-100 min-h-screen p-6">
-  <h1 class="text-3xl font-bold mb-6 text-center">Yu-Gi-Oh! Trade & Wish List</h1>
+  <h1 class="text-3xl font-bold mb-6 text-center">Lista de Trocas do Tony</h1>
   
   <div class="grid grid-cols-2 gap-8">
     <!-- Selling/Trading -->
     <div>
       <div class="flex justify-between items-center mb-2">
-        <h2 class="text-xl font-semibold">Selling / Trading</h2>
+        <h2 class="text-xl font-semibold">Tenho</h2>
       </div>
       <input id="selling-search" type="text" placeholder="Search..." class="w-full mb-2 border p-1 rounded text-sm">
       <div class="flex justify-between items-center mb-2">
         <div>
-          <label class="mr-1">Sort by:</label>
+          <label class="mr-1">Ordenar por:</label>
           <select id="selling-sort" class="border rounded p-1 text-sm">
-            <option value="random">Random</option>
-            <option value="name">Name</option>
-            <option value="setid">Set ID</option>
-            <option value="passcode">Passcode</option>
-            <option value="price">Price</option>
-            <option value="quantity">Quantity</option>
+            <option value="random">Aleatório</option>
+            <option value="name">Nome</option>
+            <option value="setid">Número</option>
+            <option value="passcode">Código</option>
+            <option value="price">Preço</option>
+            <option value="quantity">Quantidade</option>
           </select>
-          <button id="selling-order" class="ml-1 bg-gray-200 px-2 rounded text-sm">Asc</button>
+          <button id="selling-order" class="ml-1 bg-gray-200 px-2 rounded text-sm">Ascendente</button>
         </div>
       </div>
       <div id="selling-list" class="grid gap-4 h-[70vh] overflow-y-auto"></div>
@@ -36,21 +36,21 @@
     <!-- Looking For -->
     <div>
       <div class="flex justify-between items-center mb-2">
-        <h2 class="text-xl font-semibold">Looking For</h2>
+        <h2 class="text-xl font-semibold">Quero</h2>
       </div>
       <input id="wanted-search" type="text" placeholder="Search..." class="w-full mb-2 border p-1 rounded text-sm">
       <div class="flex justify-between items-center mb-2">
         <div>
-          <label class="mr-1">Sort by:</label>
+          <label class="mr-1">Ordenar por:</label>
           <select id="wanted-sort" class="border rounded p-1 text-sm">
-            <option value="random">Random</option>
-            <option value="name">Name</option>
-            <option value="setid">Set ID</option>
-            <option value="passcode">Passcode</option>
-            <option value="price">Price</option>
-            <option value="quantity">Quantity</option>
+            <option value="random">Aleatório</option>
+            <option value="name">Nome</option>
+            <option value="setid">Número</option>
+            <option value="passcode">Código</option>
+            <option value="price">Preço</option>
+            <option value="quantity">Quantidade</option>
           </select>
-          <button id="wanted-order" class="ml-1 bg-gray-200 px-2 rounded text-sm">Asc</button>
+          <button id="wanted-order" class="ml-1 bg-gray-200 px-2 rounded text-sm">Ascendente</button>
         </div>
       </div>
       <div id="wanted-list" class="grid gap-4 h-[70vh] overflow-y-auto"></div>
@@ -194,24 +194,24 @@
     function setupSortingAndSearch() {
       // Selling
       const updateSelling = () => {
-        const sorted = sortCards([...sellingCards], sellingSortSelect.value, sellingOrderBtn.textContent==="Asc");
+        const sorted = sortCards([...sellingCards], sellingSortSelect.value, sellingOrderBtn.textContent==="Ascendente");
         renderList(sellingList, sorted, sellingSearch.value);
       };
       sellingSortSelect.addEventListener("change", updateSelling);
       sellingOrderBtn.addEventListener("click", () => {
-        sellingOrderBtn.textContent = sellingOrderBtn.textContent==="Asc"?"Desc":"Asc";
+        sellingOrderBtn.textContent = sellingOrderBtn.textContent==="Ascendente"?"Descendente":"Ascendente";
         updateSelling();
       });
       sellingSearch.addEventListener("input", updateSelling);
 
       // Wanted
       const updateWanted = () => {
-        const sorted = sortCards([...wantedCards], wantedSortSelect.value, wantedOrderBtn.textContent==="Asc");
+        const sorted = sortCards([...wantedCards], wantedSortSelect.value, wantedOrderBtn.textContent==="Ascendente");
         renderList(wantedList, sorted, wantedSearch.value);
       };
       wantedSortSelect.addEventListener("change", updateWanted);
       wantedOrderBtn.addEventListener("click", () => {
-        wantedOrderBtn.textContent = wantedOrderBtn.textContent==="Asc"?"Desc":"Asc";
+        wantedOrderBtn.textContent = wantedOrderBtn.textContent==="Ascendente"?"Descendente":"Ascendente";
         updateWanted();
       });
       wantedSearch.addEventListener("input", updateWanted);
