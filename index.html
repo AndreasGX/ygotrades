@@ -10,7 +10,7 @@
   <h1 class="text-3xl font-bold mb-6 text-center">Lista de Trocas do Tony</h1>
   
   <div class="grid grid-cols-2 gap-8">
-    <!-- Tenho -->
+    <!-- Selling/Trading -->
     <div>
       <div class="flex justify-between items-center mb-2">
         <h2 class="text-xl font-semibold">Tenho</h2>
@@ -26,7 +26,6 @@
             <option value="passcode">Código</option>
             <option value="price">Preço</option>
             <option value="quantity">Quantidade</option>
-            <option value="type">Tipo</option>
           </select>
           <button id="selling-order" class="ml-1 bg-gray-200 px-2 rounded text-sm">Ascendente</button>
         </div>
@@ -34,7 +33,7 @@
       <div id="selling-list" class="grid gap-4 h-[70vh] overflow-y-auto"></div>
     </div>
     
-    <!-- Quero -->
+    <!-- Looking For -->
     <div>
       <div class="flex justify-between items-center mb-2">
         <h2 class="text-xl font-semibold">Quero</h2>
@@ -50,7 +49,6 @@
             <option value="passcode">Código</option>
             <option value="price">Preço</option>
             <option value="quantity">Quantidade</option>
-            <option value="type">Tipo</option>
           </select>
           <button id="wanted-order" class="ml-1 bg-gray-200 px-2 rounded text-sm">Ascendente</button>
         </div>
@@ -88,11 +86,12 @@
       });
     }
 
-    function createCardElement({name, setid, passcode, price, customImage, quantity, type}) {
+    function createCardElement({name, setid, passcode, price, customImage, quantity}) {
       if (!name?.trim()) return null;
 
       let image = "";
       if (passcode?.trim()) {
+        // Remove leading zeros only for the image URL
         const trimmedPasscode = passcode.trim().replace(/^0+/, "");
         image = `https://images.ygoprodeck.com/images/cards/${trimmedPasscode}.jpg`;
       }
@@ -109,7 +108,6 @@
           ${passcode?.trim() ? `<p class="text-sm text-gray-600">Código: ${passcode}</p>` : ""}
           ${price?.trim() ? `<p class="text-sm text-green-600">R$ ${price}</p>` : ""}
           ${quantity?.trim() ? `<p class="text-sm text-blue-600">Quantidade: ${quantity}</p>` : ""}
-          ${type?.trim() ? `<p class="text-sm text-purple-600">Tipo: ${type}</p>` : ""}
         </div>
       `;
       return cardEl;
@@ -131,21 +129,6 @@
       if (key === "random") {
         return cards.sort(() => Math.random() - 0.5);
       }
-
-      if (key === "type") {
-        return cards.sort((a, b) => {
-          const [mainA, subA] = (a.type || "").toLowerCase().split(";");
-          const [mainB, subB] = (b.type || "").toLowerCase().split(";");
-
-          if (mainA < mainB) return ascending ? -1 : 1;
-          if (mainA > mainB) return ascending ? 1 : -1;
-
-          if ((subA || "") < (subB || "")) return ascending ? -1 : 1;
-          if ((subA || "") > (subB || "")) return ascending ? 1 : -1;
-          return 0;
-        });
-      }
-
       return cards.sort((a, b) => {
         let valA = a[key]?.trim() || "";
         let valB = b[key]?.trim() || "";
@@ -171,16 +154,14 @@
         sellingPasscode: getIndex("selling passcode"),
         sellingPrice: getIndex("selling price"),
         sellingImage: getIndex("selling image url"),
-        sellingQuantity: getIndex("selling quantity"),
-        sellingType: getIndex("selling type"), // NOVO
+        sellingQuantity: getIndex("selling quantity"), // NEW
 
         wantedName: getIndex("wanted name"),
         wantedSetID: getIndex("wanted set id"),
         wantedPasscode: getIndex("wanted passcode"),
         wantedPrice: getIndex("wanted price"),
         wantedImage: getIndex("wanted image url"),
-        wantedQuantity: getIndex("wanted quantity"),
-        wantedType: getIndex("wanted type") // NOVO
+        wantedQuantity: getIndex("wanted quantity") // NEW
       };
 
       sellingCards = [];
@@ -193,8 +174,7 @@
           passcode: map.sellingPasscode >= 0 ? cols[map.sellingPasscode] : "",
           price: map.sellingPrice >= 0 ? cols[map.sellingPrice] : "",
           customImage: map.sellingImage >= 0 ? cols[map.sellingImage] : "",
-          quantity: map.sellingQuantity >= 0 ? cols[map.sellingQuantity] : "",
-          type: map.sellingType >= 0 ? cols[map.sellingType] : ""
+          quantity: map.sellingQuantity >= 0 ? cols[map.sellingQuantity] : ""
         });
         wantedCards.push({
           name: map.wantedName >= 0 ? cols[map.wantedName] : "",
@@ -202,16 +182,17 @@
           passcode: map.wantedPasscode >= 0 ? cols[map.wantedPasscode] : "",
           price: map.wantedPrice >= 0 ? cols[map.wantedPrice] : "",
           customImage: map.wantedImage >= 0 ? cols[map.wantedImage] : "",
-          quantity: map.wantedQuantity >= 0 ? cols[map.wantedQuantity] : "",
-          type: map.wantedType >= 0 ? cols[map.wantedType] : ""
+          quantity: map.wantedQuantity >= 0 ? cols[map.wantedQuantity] : ""
         });
       });
 
+      // Initial render in random order
       renderList(sellingList, sortCards(sellingCards, "random"));
       renderList(wantedList, sortCards(wantedCards, "random"));
     }
 
     function setupSortingAndSearch() {
+      // Selling
       const updateSelling = () => {
         const sorted = sortCards([...sellingCards], sellingSortSelect.value, sellingOrderBtn.textContent==="Ascendente");
         renderList(sellingList, sorted, sellingSearch.value);
@@ -223,6 +204,7 @@
       });
       sellingSearch.addEventListener("input", updateSelling);
 
+      // Wanted
       const updateWanted = () => {
         const sorted = sortCards([...wantedCards], wantedSortSelect.value, wantedOrderBtn.textContent==="Ascendente");
         renderList(wantedList, sorted, wantedSearch.value);
