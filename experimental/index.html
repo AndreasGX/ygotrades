@@ -99,27 +99,31 @@
       });
     }
 
-    async function fetchCardDetails(passcode) {
-      if (!passcode) return null;
-      const code = passcode.replace(/^0+/, "");
+      async function fetchCardDetails(passcode) {
+        if (!passcode) return null;
+        const code = passcode.replace(/^0+/, "");
   
-      // helper to fetch in a specific language
-      async function fetchWithLang(lang) {
-        const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${code}&language=${lang}`);
-        if (!res.ok) return null;
-        const data = await res.json();
-        return data?.data?.[0] || null;
+        async function fetchWithLang(lang) {
+          try {
+            const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${code}&language=${lang}`);
+            if (!res.ok) return null;
+            const data = await res.json();
+            if (data?.data?.[0]) return data.data[0];
+            return null; // explicitly fail if no card found
+          } catch {
+            return null;
+          }
+        }
+
+        // Try PT, fallback to EN
+        let details = await fetchWithLang("pt");
+        if (!details) {
+          details = await fetchWithLang("en");
+        }
+
+        return details;
       }
 
-      // try PT first
-      let details = await fetchWithLang("pt");
-      if (!details) {
-        // fallback to EN
-        details = await fetchWithLang("en");
-      }
-
-      return details;
-    }
 
 
     async function showCardModal(card) {
