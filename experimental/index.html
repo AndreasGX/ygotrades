@@ -99,32 +99,32 @@
       });
     }
 
-      async function fetchCardDetails(passcode) {
-        if (!passcode) return null;
-        const code = passcode.replace(/^0+/, "");
-  
-        async function fetchWithLang(lang) {
-          try {
-            const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${code}&language=${lang}`);
-            if (!res.ok) return null;
-            const data = await res.json();
-            if (data?.data?.[0]) return data.data[0];
-            return null; // explicitly fail if no card found
-          } catch {
-            return null;
-          }
-        }
+    async function fetchCardDetails(passcode) {
+      if (!passcode) return null;
+      const code = passcode.replace(/^0+/, "");
 
-        // Try PT, fallback to EN
-        let details = await fetchWithLang("pt");
-        if (!details) {
-          details = await fetchWithLang("en");
+      async function fetchWithLang(lang) {
+        try {
+          const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${code}&language=${lang}`);
+          if (!res.ok) return null;
+          const data = await res.json();
+          if (data.error) return null; // PT missing → force fallback
+          return data?.data?.[0] || null;
+        } catch {
+          return null;
         }
-
-        return details;
       }
 
+      // Try PT first
+      let details = await fetchWithLang("pt");
 
+      // Fallback if PT fails
+      if (!details) {
+        details = await fetchWithLang("en");
+      }
+
+      return details;
+    }
 
     async function showCardModal(card) {
       const modal = document.getElementById("card-modal");
