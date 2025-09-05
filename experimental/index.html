@@ -1,4 +1,6 @@
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script>
+document.addEventListener("DOMContentLoaded", function() {
 const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQpJVCUhWxyH_TM4-83ra9FXLCES8yqIBVQy3ed6OoVZwbSH4LkoVh7gBn6K2iz32cQNftsj1E-UIiK/pub?output=csv";
 
 let sellingCards = [];
@@ -7,6 +9,10 @@ let wantedCards = [];
 // ---------- Helpers ----------
 async function loadCsv(url) {
   return new Promise((resolve, reject) => {
+    if (!window.Papa) {
+      reject(new Error("PapaParse library not loaded."));
+      return;
+    }
     Papa.parse(url, {
       download: true,
       header: true,
@@ -41,7 +47,9 @@ function createCardElement(card) {
 
   // Only the image triggers the modal now
   const imgEl = div.querySelector("img");
-  imgEl.addEventListener("click", () => showCardModal(card));
+  if (imgEl) {
+    imgEl.addEventListener("click", () => showCardModal(card));
+  }
 
   return div;
 }
@@ -92,10 +100,37 @@ async function fetchCardDetails(passcode) {
 async function showCardModal(card) {
   const modal = document.getElementById("card-modal");
   const modalContent = document.getElementById("modal-content");
+  if (!modal || !modalContent) return;
   modal.classList.remove("hidden");
   modalContent.innerHTML = "<p>Carregando...</p>";
 
   const details = await fetchCardDetails(card.passcode);
+
+  function setupCloseHandlers() {
+    const closeBtn = document.getElementById("modal-close");
+    if (closeBtn) {
+      closeBtn.addEventListener("click", () => {
+        modal.classList.add("hidden");
+        modalContent.innerHTML = "";
+      });
+    }
+
+    modal.addEventListener("click", e => {
+      if (e.target === modal) {
+        modal.classList.add("hidden");
+        modalContent.innerHTML = "";
+      }
+    });
+
+    function escListener(e) {
+      if (e.key === "Escape") {
+        modal.classList.add("hidden");
+        modalContent.innerHTML = "";
+        document.removeEventListener("keydown", escListener);
+      }
+    }
+    document.addEventListener("keydown", escListener);
+  }
 
   if (details) {
     modalContent.innerHTML = `
@@ -109,29 +144,7 @@ async function showCardModal(card) {
       <p><strong>Descrição:</strong> ${details.desc}</p>
       <a href="https://ygoprodeck.com/card/?search=${details.id}" target="_blank" class="text-blue-600 underline">Mais informações</a>
     `;
-
-    const closeBtn = document.getElementById("modal-close");
-    closeBtn.addEventListener("click", () => {
-      modal.classList.add("hidden");
-      modalContent.innerHTML = "";
-    });
-
-    // Close modal on outside click
-    modal.addEventListener("click", e => {
-      if (e.target === modal) {
-        modal.classList.add("hidden");
-        modalContent.innerHTML = "";
-      }
-    });
-
-    // Close modal on ESC
-    document.addEventListener("keydown", function escListener(e) {
-      if (e.key === "Escape") {
-        modal.classList.add("hidden");
-        modalContent.innerHTML = "";
-        document.removeEventListener("keydown", escListener);
-      }
-    });
+    setupCloseHandlers();
   } else {
     modalContent.innerHTML = `
       <button id="modal-close" class="absolute top-2 right-2 text-red-600 text-2xl font-bold hover:text-red-800">&times;</button>
@@ -139,31 +152,13 @@ async function showCardModal(card) {
       <img src="${card.customImage || `https://images.ygoprodeck.com/images/cards/${card.passcode?.replace(/^0+/, "")}.jpg`}" alt="${card.name}" class="w-40 h-56 object-contain mb-4 rounded">
       <p>Informações detalhadas não encontradas.</p>
     `;
-    const closeBtn = document.getElementById("modal-close");
-    closeBtn.addEventListener("click", () => {
-      modal.classList.add("hidden");
-      modalContent.innerHTML = "";
-    });
-
-    modal.addEventListener("click", e => {
-      if (e.target === modal) {
-        modal.classList.add("hidden");
-        modalContent.innerHTML = "";
-      }
-    });
-
-    document.addEventListener("keydown", function escListener(e) {
-      if (e.key === "Escape") {
-        modal.classList.add("hidden");
-        modalContent.innerHTML = "";
-        document.removeEventListener("keydown", escListener);
-      }
-    });
+    setupCloseHandlers();
   }
 }
 
 // ---------- Rendering ----------
 function renderSection({cards, listEl, searchInput, sortSelect, orderBtn}) {
+  if (!listEl || !searchInput || !sortSelect || !orderBtn) return;
   function update() {
     const search = searchInput.value.toLowerCase();
     const sorted = sortCards(cards, sortSelect.value, orderBtn.textContent === "Ascendente");
@@ -186,14 +181,24 @@ function renderSection({cards, listEl, searchInput, sortSelect, orderBtn}) {
 }
 
 // ---------- Init ----------
-document.getElementById("modal-close").addEventListener("click", () => {
-  const modal = document.getElementById("card-modal");
-  modal.classList.add("hidden");
-  document.getElementById("modal-content").innerHTML = "";
-});
+const modalCloseBtn = document.getElementById("modal-close");
+if (modalCloseBtn) {
+  modalCloseBtn.addEventListener("click", () => {
+    const modal = document.getElementById("card-modal");
+    if (modal) modal.classList.add("hidden");
+    const modalContent = document.getElementById("modal-content");
+    if (modalContent) modalContent.innerHTML = "";
+  });
+}
 
 (async function init() {
-  const rows = await loadCsv(csvUrl);
+  let rows = [];
+  try {
+    rows = await loadCsv(csvUrl);
+  } catch (e) {
+    console.error("Failed to load CSV:", e);
+    return;
+  }
   if (!rows.length) return;
 
   const normalizedRows = rows.map(r => {
@@ -233,13 +238,15 @@ document.getElementById("modal-close").addEventListener("click", () => {
   ];
   ["selling-sort", "wanted-sort"].forEach(id => {
     const select = document.getElementById(id);
-    select.innerHTML = "";
-    options.forEach(o => {
-      const opt = document.createElement("option");
-      opt.value = o.value;
-      opt.textContent = o.label;
-      select.appendChild(opt);
-    });
+    if (select) {
+      select.innerHTML = "";
+      options.forEach(o => {
+        const opt = document.createElement("option");
+        opt.value = o.value;
+        opt.textContent = o.label;
+        select.appendChild(opt);
+      });
+    }
   });
 
   renderSection({
@@ -258,4 +265,5 @@ document.getElementById("modal-close").addEventListener("click", () => {
     orderBtn: document.getElementById("wanted-order")
   });
 })();
+});
 </script>
