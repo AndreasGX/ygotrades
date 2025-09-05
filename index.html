@@ -8,7 +8,7 @@
 </head>
 <body class="bg-gray-100 min-h-screen p-6">
   <h1 class="text-3xl font-bold mb-6 text-center">Lista de Trocas do Tony</h1>
-  
+
   <div class="grid grid-cols-2 gap-8">
     <!-- Selling/Trading -->
     <div>
@@ -21,7 +21,7 @@
       </div>
       <div id="selling-list" class="grid gap-4 h-[70vh] overflow-y-auto"></div>
     </div>
-    
+
     <!-- Looking For -->
     <div>
       <h2 class="text-xl font-semibold mb-2">Quero</h2>
@@ -38,7 +38,7 @@
   <!-- Card Details Modal -->
   <div id="card-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
     <div class="bg-white rounded-xl shadow-lg p-6 max-w-lg w-full relative">
-      <button id="modal-close" class="absolute top-2 right-2 text-gray-600 hover:text-black">&times;</button>
+      <button id="modal-close" class="absolute top-2 right-2 text-red-600 text-2xl font-bold hover:text-red-800">&times;</button>
       <div id="modal-content"></div>
     </div>
   </div>
@@ -72,9 +72,9 @@
       if (card.customImage) image = card.customImage;
 
       const div = document.createElement("div");
-      div.className = "bg-white rounded-xl shadow-md p-3 flex gap-3 items-center cursor-pointer";
+      div.className = "bg-white rounded-xl shadow-md p-3 flex gap-3 items-center";
       div.innerHTML = `
-        <img src="${image}" alt="${card.name}" class="w-20 h-28 object-cover rounded">
+        <img src="${image}" alt="${card.name}" class="w-20 h-[86px] object-contain rounded cursor-pointer">
         <div>
           <h4 class="font-bold">${card.name}</h4>
           ${card.setid ? `<p class="text-sm text-gray-600">Número: ${card.setid}</p>` : ""}
@@ -83,6 +83,13 @@
           ${card.quantity ? `<p class="text-sm text-blue-600">Quantidade: ${card.quantity}</p>` : ""}
         </div>
       `;
+
+      // Only open modal when clicking the image
+      div.querySelector("img")?.addEventListener("click", e => {
+        e.stopPropagation();
+        showCardModal(card);
+      });
+
       return div;
     }
 
@@ -91,6 +98,7 @@
       return [...cards].sort((a, b) => {
         let valA = a[key] || "";
         let valB = b[key] || "";
+        if (key === "name") return (valA).localeCompare(valB, "pt", { sensitivity: 'base' }) * (ascending ? 1 : -1);
         if (["price", "passcode", "quantity"].includes(key)) {
           valA = parseFloat(valA) || 0;
           valB = parseFloat(valB) || 0;
@@ -101,15 +109,23 @@
 
     async function fetchCardDetails(passcode) {
       if (!passcode) return null;
-      try {
-        const code = passcode.replace(/^0+/, "");
-        const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${code}&language=pt`);
-        if (!res.ok) return null;
-        const data = await res.json();
-        return data.data[0];
-      } catch {
-        return null;
+      const code = passcode.replace(/^0+/, "");
+
+      async function fetchWithLang(lang) {
+        try {
+          const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${code}&language=${lang}`);
+          if (!res.ok) return null;
+          const data = await res.json();
+          if (data.error || !data.data?.length) return null;
+          return data.data[0];
+        } catch {
+          return null;
+        }
       }
+
+      let details = await fetchWithLang("pt");
+      if (!details) details = await fetchWithLang("en");
+      return details;
     }
 
     async function showCardModal(card) {
@@ -119,10 +135,13 @@
       modalContent.innerHTML = "<p>Carregando...</p>";
 
       const details = await fetchCardDetails(card.passcode);
+
+      const imageUrl = details?.card_images?.[0]?.image_url || card.customImage || `https://images.ygoprodeck.com/images/cards/${card.passcode?.replace(/^0+/, "")}.jpg`;
+
       if (details) {
         modalContent.innerHTML = `
           <h2 class="text-xl font-bold mb-2">${details.name}</h2>
-          <img src="${details.card_images[0].image_url}" alt="${details.name}" class="w-40 h-56 object-cover mb-4 rounded">
+          <img src="${imageUrl}" alt="${details.name}" class="w-40 h-56 object-contain mb-4 rounded">
           <p><strong>Tipo:</strong> ${details.type}</p>
           <p><strong>Level/Rank:</strong> ${details.level || details.rank || "N/A"}</p>
           <p><strong>Ataque:</strong> ${details.atk ?? "N/A"}</p>
@@ -133,7 +152,7 @@
       } else {
         modalContent.innerHTML = `
           <h2 class="text-xl font-bold mb-2">${card.name}</h2>
-          <img src="${card.customImage || `https://images.ygoprodeck.com/images/cards/${card.passcode?.replace(/^0+/, "")}.jpg`}" alt="${card.name}" class="w-40 h-56 object-cover mb-4 rounded">
+          <img src="${imageUrl}" alt="${card.name}" class="w-40 h-56 object-contain mb-4 rounded">
           <p>Informações detalhadas não encontradas.</p>
         `;
       }
@@ -149,10 +168,7 @@
           const values = Object.values(card).join(" ").toLowerCase();
           if (values.includes(search)) {
             const el = createCardElement(card);
-            if (el) {
-              el.addEventListener("click", () => showCardModal(card));
-              listEl.appendChild(el);
-            }
+            if (el) listEl.appendChild(el);
           }
         });
       }
@@ -162,30 +178,30 @@
         update();
       });
       searchInput.addEventListener("input", update);
-      update(); // initial
+      update();
     }
 
-    // ---------- Init ----------
+    // ---------- Modal Close ----------
+    const modal = document.getElementById("card-modal");
     document.getElementById("modal-close").addEventListener("click", () => {
-      document.getElementById("card-modal").classList.add("hidden");
+      modal.classList.add("hidden");
       document.getElementById("modal-content").innerHTML = "";
     });
+    modal.addEventListener("click", e => { if(e.target === modal) modal.classList.add("hidden"); });
+    document.addEventListener("keydown", e => { if(e.key === "Escape") modal.classList.add("hidden"); });
 
+    // ---------- Init ----------
     (async function init() {
       const rows = await loadCsv(csvUrl);
       if (!rows.length) return;
 
-      // Normalize headers → lowercase + no spaces
+      // Normalize headers
       const normalizedRows = rows.map(r => {
         const obj = {};
-        for (const key in r) {
-          const norm = key.trim().toLowerCase().replace(/\s+/g, "");
-          obj[norm] = r[key];
-        }
+        for (const key in r) obj[key.trim().toLowerCase().replace(/\s+/g, "")] = r[key];
         return obj;
       });
 
-      // Build card arrays
       sellingCards = normalizedRows.map(r => ({
         name: r["sellingname"] || "",
         setid: r["sellingsetid"] || "",
@@ -204,7 +220,6 @@
         quantity: r["wantedquantity"] || ""
       })).filter(c => c.name);
 
-      // Fill sort dropdowns
       const options = [
         {value: "random", label: "Aleatório"},
         {value: "name", label: "Nome"},
@@ -215,16 +230,10 @@
       ];
       ["selling-sort", "wanted-sort"].forEach(id => {
         const select = document.getElementById(id);
-        select.innerHTML = ""; // clear previous
-        options.forEach(o => {
-          const opt = document.createElement("option");
-          opt.value = o.value;
-          opt.textContent = o.label;
-          select.appendChild(opt);
-        });
+        select.innerHTML = "";
+        options.forEach(o => { const opt = document.createElement("option"); opt.value = o.value; opt.textContent = o.label; select.appendChild(opt); });
       });
 
-      // Render both sections
       renderSection({
         cards: sellingCards,
         listEl: document.getElementById("selling-list"),
