@@ -58,6 +58,7 @@
     let sellingCards = [];
     let wantedCards = [];
     let selectedSelling = {}; // {passcode_index: quantidade} to distinguish duplicate passcodes
+    let currentSellingOrder = [];
 
     async function loadCsv(url) {
       return new Promise((resolve, reject) => {
@@ -129,27 +130,20 @@
     }
 
     function generateSellingListText() {
-      // Map by name to count different Set-IDs
-      const nameMap = {};
-      for (const [key, qty] of Object.entries(selectedSelling)) {
-        const card = sellingCards[key];
-        if (!card) continue;
-        if (!nameMap[card.name]) nameMap[card.name] = [];
-        nameMap[card.name].push({qty, setid: card.setid});
-      }
-
       let output = [];
-      for (const [name, entries] of Object.entries(nameMap)) {
-        entries.forEach(e => {
-          let line = `${e.qty} ${name}`;
-          if (entries.length > 1 && e.setid) {
-            const trimmedSet = e.setid.split("-")[0];
-            line += ` (${trimmedSet})`;
-          }
-          output.push(line);
-        });
-      }
+      currentSellingOrder.forEach(idx => {
+        const card = sellingCards[idx];
+        if (!card) return;
+        if (!selectedSelling[idx]) return;
 
+        const qty = selectedSelling[idx];
+        let line = `${qty} ${card.name}`;
+        if (card.setid) {
+          const trimmedSet = card.setid.split("-")[0];
+          line += ` (${trimmedSet})`;
+        }
+        output.push(line);
+      });
       return output.join("\n");
     }
 
@@ -160,6 +154,7 @@
         listEl.innerHTML = "";
 
         let hasResults = false;
+        const indices = [];
         sorted.forEach((card, index) => {
           const values = Object.values(card).join(" ").toLowerCase();
           if (values.includes(search)) {
@@ -167,6 +162,7 @@
             if (el) {
               listEl.appendChild(el);
               hasResults = true;
+              indices.push(index);
             }
           }
         });
@@ -176,6 +172,7 @@
         }
 
         if (withSelection) {
+          currentSellingOrder = indices;
           listEl.querySelectorAll(".card-checkbox").forEach(cb => {
             cb.addEventListener("change", e => {
               const idx = e.target.dataset.index;
