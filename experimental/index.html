@@ -5,6 +5,11 @@
   <title>Lista de Trocas do Tony</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <style>
+    .out-of-stock img {
+      filter: grayscale(100%) brightness(50%);
+    }
+  </style>
 </head>
 <body class="bg-gray-100 min-h-screen p-6">
   <h1 class="text-3xl font-bold mb-6 text-center">Lista de Trocas do Tony</h1>
@@ -15,20 +20,20 @@
     <div>
       <h2 class="text-xl font-semibold mb-2">Tenho</h2>
       <input id="selling-search" type="text" placeholder="Pesquisar..." class="w-full mb-2 border p-1 rounded text-sm">
-      <div class="flex items-center gap-2 mb-2">
+      <div class="flex items-center gap-4 mb-2">
         <label>Ordenar por:</label>
         <select id="selling-sort" class="border rounded p-1 text-sm"></select>
         <button id="selling-order" class="bg-gray-200 px-2 rounded text-sm">Ascendente</button>
-      </div>
-      <div class="flex items-center gap-4 mb-2">
-        <label class="flex items-center gap-2">
+        <label class="flex items-center gap-2 ml-auto">
           <input type="checkbox" id="select-all-selling" class="h-4 w-4">
           Selecionar Todos
         </label>
-        <button id="copy-selling" class="bg-green-500 text-white px-3 py-1 rounded text-sm">Copiar Lista</button>
       </div>
-      <p id="selling-total" class="font-semibold text-lg mb-2">Total: R$ 0,00</p>
-      <div id="selling-list" class="grid gap-4 h-[70vh] overflow-y-auto"></div>
+      <div id="selling-list" class="grid gap-4 h-[70vh] overflow-y-auto mb-4"></div>
+      <div class="flex items-center gap-4">
+        <button id="copy-selling" class="bg-green-500 text-white px-3 py-1 rounded text-sm">Copiar Lista</button>
+        <p id="selling-total" class="font-semibold text-lg">Total: R$ 0,00</p>
+      </div>
     </div>
 
     <!-- Looking For -->
@@ -57,7 +62,7 @@
 
     let sellingCards = [];
     let wantedCards = [];
-    let selectedSelling = {}; // {passcode_index: quantidade} to distinguish duplicate passcodes
+    let selectedSelling = {}; 
     let currentSellingOrder = [];
 
     async function loadCsv(url) {
@@ -80,6 +85,10 @@
 
     function createCardElement(card, index, withSelection = false) {
       if (!card.name) return null;
+
+      // Hide out-of-stock cards
+      if (parseInt(card.quantity) === 0) return null;
+
       let image = "";
       if (card.passcode) {
         const code = card.passcode.replace(/^0+/, "");
@@ -92,15 +101,11 @@
 
       let quantityDisplay = "";
       if (card.quantity) {
-        if (parseInt(card.quantity) === 0) {
-          quantityDisplay = `<p class="text-sm text-red-600 font-bold">ESGOTADO</p>`;
-        } else {
-          quantityDisplay = `<p class="text-sm text-blue-600">Qtd: ${card.quantity}</p>`;
-        }
+        quantityDisplay = `<p class="text-sm text-blue-600">Qtd: ${card.quantity}</p>`;
       }
 
       div.innerHTML = `
-        <input type="checkbox" class="card-checkbox" data-index="${index}" ${parseInt(card.quantity) === 0 ? "disabled" : ""}>
+        <input type="checkbox" class="card-checkbox" data-index="${index}">
         <img src="${image}" alt="${card.name}" class="w-20 h-[86px] object-contain rounded cursor-pointer">
         <div>
           <h4 class="font-bold">${card.name}</h4>
@@ -108,7 +113,7 @@
           ${card.passcode ? `<p class="text-sm text-gray-600">Código: ${card.passcode}</p>` : ""}
           ${card.price ? `<p class="text-sm text-green-600">R$ ${formatPrice(card.price)}</p>` : ""}
           ${quantityDisplay}
-          <input type="number" min="1" max="${card.quantity || 1}" value="1" class="quantity-input border rounded w-16 p-1 mt-1 text-sm" data-index="${index}" ${parseInt(card.quantity) === 0 ? "disabled" : ""}>
+          <input type="number" min="1" max="${card.quantity || 1}" value="1" class="quantity-input border rounded w-16 p-1 mt-1 text-sm" data-index="${index}">
         </div>
       `;
 
@@ -116,6 +121,9 @@
         e.stopPropagation();
         showCardModal(card);
       });
+
+      // Grey out images if quantity=0 (for future-proofing)
+      if (parseInt(card.quantity) === 0) div.classList.add("out-of-stock");
 
       return div;
     }
@@ -173,6 +181,7 @@
 
         if (withSelection) {
           currentSellingOrder = indices;
+
           listEl.querySelectorAll(".card-checkbox").forEach(cb => {
             cb.addEventListener("change", e => {
               const idx = e.target.dataset.index;
@@ -329,18 +338,18 @@
         orderBtn: document.getElementById("wanted-order")
       });
 
+      // Select All checkbox (unchecked by default)
+      document.getElementById("select-all-selling").checked = false;
       document.getElementById("select-all-selling").addEventListener("change", e => {
         const checkAll = e.target.checked;
         selectedSelling = {};
         document.querySelectorAll("#selling-list .card-checkbox").forEach(cb => {
-          if (!cb.disabled) {
-            cb.checked = checkAll;
-            const idx = cb.dataset.index;
-            const qtyInput = document.querySelector(`.quantity-input[data-index='${idx}']`);
-            if (checkAll) {
-              selectedSelling[idx] = parseInt(qtyInput.max) || 1;
-              qtyInput.value = qtyInput.max;
-            }
+          cb.checked = checkAll;
+          const idx = cb.dataset.index;
+          const qtyInput = document.querySelector(`.quantity-input[data-index='${idx}']`);
+          if (checkAll) {
+            selectedSelling[idx] = parseInt(qtyInput.value) || 1;
+            qtyInput.value = qtyInput.max;
           }
         });
         updateSellingTotal();
