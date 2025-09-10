@@ -1,192 +1,359 @@
-let selectAllCheckbox = null; // for the "Select All" toggle
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Lista de Trocas do Tony</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+  <h1 class="text-3xl font-bold mb-6 text-center">Lista de Trocas do Tony</h1>
+  <p class="text-center text-gray-600 mb-6">Minha página para venda e troca de cards de Yu-Gi-Oh! Aqui você encontra os que tenho disponíveis para troca e também os que estou procurando.</p>
 
-function renderSection({cards, listEl, searchInput, sortSelect, orderBtn, withSelection = false}) {
-  function update() {
-    const search = searchInput.value.toLowerCase();
-    const sorted = sortCards(cards, sortSelect.value, orderBtn.textContent === "Ascendente");
-    listEl.innerHTML = "";
+  <div class="grid grid-cols-2 gap-8">
+    <!-- Selling/Trading -->
+    <div>
+      <h2 class="text-xl font-semibold mb-2">Tenho</h2>
+      <input id="selling-search" type="text" placeholder="Pesquisar..." class="w-full mb-2 border p-1 rounded text-sm">
+      <div class="flex items-center gap-2 mb-2">
+        <label>Ordenar por:</label>
+        <select id="selling-sort" class="border rounded p-1 text-sm"></select>
+        <button id="selling-order" class="bg-gray-200 px-2 rounded text-sm">Ascendente</button>
+      </div>
+      <div class="flex items-center gap-4 mb-2">
+        <label class="flex items-center gap-2">
+          <input type="checkbox" id="select-all-selling" class="h-4 w-4">
+          Selecionar Todos
+        </label>
+        <button id="copy-selling" class="bg-green-500 text-white px-3 py-1 rounded text-sm">Copiar Lista</button>
+      </div>
+      <p id="selling-total" class="font-semibold text-lg mb-2">Total: R$ 0,00</p>
+      <div id="selling-list" class="grid gap-4 h-[70vh] overflow-y-auto"></div>
+    </div>
 
-    let hasResults = false;
-    sorted.forEach(card => {
-      const values = Object.values(card).join(" ").toLowerCase();
-      if (values.includes(search)) {
-        const el = createCardElement(card, withSelection);
-        if (el) {
-          listEl.appendChild(el);
-          hasResults = true;
+    <!-- Looking For -->
+    <div>
+      <h2 class="text-xl font-semibold mb-2">Quero</h2>
+      <input id="wanted-search" type="text" placeholder="Pesquisar..." class="w-full mb-2 border p-1 rounded text-sm">
+      <div class="flex items-center gap-2 mb-2">
+        <label>Ordenar por:</label>
+        <select id="wanted-sort" class="border rounded p-1 text-sm"></select>
+        <button id="wanted-order" class="bg-gray-200 px-2 rounded text-sm">Ascendente</button>
+      </div>
+      <div id="wanted-list" class="grid gap-4 h-[70vh] overflow-y-auto"></div>
+    </div>
+  </div>
+
+  <!-- Card Details Modal -->
+  <div id="card-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-xl shadow-lg p-6 max-w-lg w-full relative">
+      <button id="modal-close" class="absolute top-2 right-2 text-red-600 text-2xl font-bold hover:text-red-800">&times;</button>
+      <div id="modal-content"></div>
+    </div>
+  </div>
+
+  <script>
+    const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQpJVCUhWxyH_TM4-83ra9FXLCES8yqIBVQy3ed6OoVZwbSH4LkoVh7gBn6K2iz32cQNftsj1E-UIiK/pub?output=csv";
+
+    let sellingCards = [];
+    let wantedCards = [];
+    let selectedSelling = {}; // {passcode_index: quantidade} to distinguish duplicate passcodes
+
+    async function loadCsv(url) {
+      return new Promise((resolve, reject) => {
+        Papa.parse(url, {
+          download: true,
+          header: true,
+          skipEmptyLines: true,
+          complete: results => resolve(results.data),
+          error: err => reject(err)
+        });
+      });
+    }
+
+    function formatPrice(value) {
+      const num = parseFloat(value);
+      if (isNaN(num)) return "";
+      return num.toFixed(2).replace(".", ",");
+    }
+
+    function createCardElement(card, index, withSelection = false) {
+      if (!card.name) return null;
+      let image = "";
+      if (card.passcode) {
+        const code = card.passcode.replace(/^0+/, "");
+        image = `https://images.ygoprodeck.com/images/cards/${code}.jpg`;
+      }
+      if (card.customImage) image = card.customImage;
+
+      const div = document.createElement("div");
+      div.className = "bg-white rounded-xl shadow-md p-3 flex gap-3 items-center";
+
+      let quantityDisplay = "";
+      if (card.quantity) {
+        if (parseInt(card.quantity) === 0) {
+          quantityDisplay = `<p class="text-sm text-red-600 font-bold">ESGOTADO</p>`;
+        } else {
+          quantityDisplay = `<p class="text-sm text-blue-600">Qtd: ${card.quantity}</p>`;
         }
       }
-    });
 
-    if (!hasResults) {
-      listEl.innerHTML = `<p class="text-gray-500 italic text-center">Ops! Nada para ver aqui...</p>`;
+      div.innerHTML = `
+        <input type="checkbox" class="card-checkbox" data-index="${index}" ${parseInt(card.quantity) === 0 ? "disabled" : ""}>
+        <img src="${image}" alt="${card.name}" class="w-20 h-[86px] object-contain rounded cursor-pointer">
+        <div>
+          <h4 class="font-bold">${card.name}</h4>
+          ${card.setid ? `<p class="text-sm text-gray-600">Número: ${card.setid}</p>` : ""}
+          ${card.passcode ? `<p class="text-sm text-gray-600">Código: ${card.passcode}</p>` : ""}
+          ${card.price ? `<p class="text-sm text-green-600">R$ ${formatPrice(card.price)}</p>` : ""}
+          ${quantityDisplay}
+          <input type="number" min="1" max="${card.quantity || 1}" value="1" class="quantity-input border rounded w-16 p-1 mt-1 text-sm" data-index="${index}" ${parseInt(card.quantity) === 0 ? "disabled" : ""}>
+        </div>
+      `;
+
+      div.querySelector("img")?.addEventListener("click", e => {
+        e.stopPropagation();
+        showCardModal(card);
+      });
+
+      return div;
     }
 
-    if (withSelection) {
-      const checkboxes = listEl.querySelectorAll(".card-checkbox");
-      const qtyInputs = listEl.querySelectorAll(".quantity-input");
+    function updateSellingTotal() {
+      let total = 0;
+      for (const [key, qty] of Object.entries(selectedSelling)) {
+        const card = sellingCards[key];
+        if (card) total += (parseFloat(card.price) || 0) * qty;
+      }
+      document.getElementById("selling-total").textContent = `Total: R$ ${total.toFixed(2).replace(".", ",")}`;
+    }
 
-      checkboxes.forEach(cb => {
-        cb.addEventListener("change", e => {
-          const passcode = e.target.dataset.passcode;
-          const qtyInput = listEl.querySelector(`.quantity-input[data-passcode='${passcode}']`);
-          if (e.target.checked) {
-            selectedSelling[passcode] = parseInt(qtyInput.value) || 1;
-          } else {
-            delete selectedSelling[passcode];
+    function generateSellingListText() {
+      // Map by name to count different Set-IDs
+      const nameMap = {};
+      for (const [key, qty] of Object.entries(selectedSelling)) {
+        const card = sellingCards[key];
+        if (!card) continue;
+        if (!nameMap[card.name]) nameMap[card.name] = [];
+        nameMap[card.name].push({qty, setid: card.setid});
+      }
+
+      let output = [];
+      for (const [name, entries] of Object.entries(nameMap)) {
+        entries.forEach(e => {
+          let line = `${e.qty} ${name}`;
+          if (entries.length > 1 && e.setid) {
+            const trimmedSet = e.setid.split("-")[0];
+            line += ` (${trimmedSet})`;
           }
-          updateSellingTotal();
-          updateSelectAllCheckbox();
+          output.push(line);
+        });
+      }
+
+      return output.join("\n");
+    }
+
+    function renderSection({cards, listEl, searchInput, sortSelect, orderBtn, withSelection = false}) {
+      function update() {
+        const search = searchInput.value.toLowerCase();
+        const sorted = sortCards(cards, sortSelect.value, orderBtn.textContent === "Ascendente");
+        listEl.innerHTML = "";
+
+        let hasResults = false;
+        sorted.forEach((card, index) => {
+          const values = Object.values(card).join(" ").toLowerCase();
+          if (values.includes(search)) {
+            const el = createCardElement(card, index, withSelection);
+            if (el) {
+              listEl.appendChild(el);
+              hasResults = true;
+            }
+          }
+        });
+
+        if (!hasResults) {
+          listEl.innerHTML = `<p class="text-gray-500 italic text-center">Ops! Nada para ver aqui...</p>`;
+        }
+
+        if (withSelection) {
+          listEl.querySelectorAll(".card-checkbox").forEach(cb => {
+            cb.addEventListener("change", e => {
+              const idx = e.target.dataset.index;
+              const qtyInput = listEl.querySelector(`.quantity-input[data-index='${idx}']`);
+              if (e.target.checked) {
+                selectedSelling[idx] = parseInt(qtyInput.value) || 1;
+              } else {
+                delete selectedSelling[idx];
+              }
+              updateSellingTotal();
+            });
+          });
+
+          listEl.querySelectorAll(".quantity-input").forEach(inp => {
+            inp.addEventListener("input", e => {
+              const idx = e.target.dataset.index;
+              const val = parseInt(e.target.value) || 1;
+              if (selectedSelling[idx] !== undefined) {
+                selectedSelling[idx] = val;
+                updateSellingTotal();
+              }
+            });
+          });
+        }
+      }
+
+      sortSelect.addEventListener("change", update);
+      orderBtn.addEventListener("click", () => {
+        orderBtn.textContent = orderBtn.textContent === "Ascendente" ? "Descendente" : "Ascendente";
+        update();
+      });
+      searchInput.addEventListener("input", update);
+      update();
+    }
+
+    function sortCards(cards, key, ascending = true) {
+      if (key === "random") return [...cards].sort(() => Math.random() - 0.5);
+      return [...cards].sort((a, b) => {
+        let valA = a[key] || "";
+        let valB = b[key] || "";
+        if (key === "name") return (valA).localeCompare(valB, "pt", { sensitivity: 'base' }) * (ascending ? 1 : -1);
+        if (["price", "passcode", "quantity"].includes(key)) {
+          valA = parseFloat(valA) || 0;
+          valB = parseFloat(valB) || 0;
+        }
+        return ascending ? (valA > valB ? 1 : -1) : (valA < valB ? 1 : -1);
+      });
+    }
+
+    async function fetchCardDetails(passcode) {
+      if (!passcode) return null;
+      const code = passcode.replace(/^0+/, "");
+      try {
+        const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${code}&language=pt`);
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (data.error || !data.data?.length) return null;
+        return data.data[0];
+      } catch {
+        return null;
+      }
+    }
+
+    async function showCardModal(card) {
+      const modal = document.getElementById("card-modal");
+      const modalContent = document.getElementById("modal-content");
+      modal.classList.remove("hidden");
+      modalContent.innerHTML = "<p>Carregando...</p>";
+
+      const details = await fetchCardDetails(card.passcode);
+      const imageUrl = details?.card_images?.[0]?.image_url || card.customImage || `https://images.ygoprodeck.com/images/cards/${card.passcode?.replace(/^0+/, "")}.jpg`;
+
+      if (details) {
+        modalContent.innerHTML = `
+          <h2 class="text-xl font-bold mb-2">${details.name}</h2>
+          <img src="${imageUrl}" alt="${details.name}" class="w-40 h-56 object-contain mb-4 rounded">
+          <p><strong>Tipo:</strong> ${details.type}</p>
+          <p><strong>Level/Rank:</strong> ${details.level || details.rank || "N/A"}</p>
+          <p><strong>Ataque:</strong> ${details.atk ?? "N/A"}</p>
+          <p><strong>Defesa:</strong> ${details.def ?? "N/A"}</p>
+          <p><strong>Descrição:</strong> ${details.desc}</p>
+        `;
+      } else {
+        modalContent.innerHTML = `<h2 class="text-xl font-bold mb-2">${card.name}</h2><p>Informações detalhadas não encontradas.</p>`;
+      }
+    }
+
+    const modal = document.getElementById("card-modal");
+    document.getElementById("modal-close").addEventListener("click", () => modal.classList.add("hidden"));
+    modal.addEventListener("click", e => { if (e.target === modal) modal.classList.add("hidden"); });
+    document.addEventListener("keydown", e => { if (e.key === "Escape") modal.classList.add("hidden"); });
+
+    (async function init() {
+      const rows = await loadCsv(csvUrl);
+      if (!rows.length) return;
+
+      const normalizedRows = rows.map(r => {
+        const obj = {};
+        for (const key in r) obj[key.trim().toLowerCase().replace(/\s+/g, "")] = r[key];
+        return obj;
+      });
+
+      sellingCards = normalizedRows.map(r => ({
+        name: r["sellingname"] || "",
+        setid: r["sellingsetid"] || "",
+        passcode: r["sellingpasscode"] || "",
+        price: r["sellingprice"] || "",
+        customImage: r["sellingimageurl"] || "",
+        quantity: r["sellingquantity"] || ""
+      })).filter(c => c.name);
+
+      wantedCards = normalizedRows.map(r => ({
+        name: r["wantedname"] || "",
+        setid: r["wantedsetid"] || "",
+        passcode: r["wantedpasscode"] || "",
+        price: r["wantedprice"] || "",
+        customImage: r["wantedimageurl"] || "",
+        quantity: r["wantedquantity"] || ""
+      })).filter(c => c.name);
+
+      const options = [
+        {value: "random", label: "Aleatório"},
+        {value: "name", label: "Nome"},
+        {value: "setid", label: "Número"},
+        {value: "passcode", label: "Código"},
+        {value: "price", label: "Preço"},
+        {value: "quantity", label: "Quantidade"}
+      ];
+      ["selling-sort", "wanted-sort"].forEach(id => {
+        const select = document.getElementById(id);
+        select.innerHTML = "";
+        options.forEach(o => {
+          const opt = document.createElement("option");
+          opt.value = o.value;
+          opt.textContent = o.label;
+          select.appendChild(opt);
         });
       });
 
-      qtyInputs.forEach(inp => {
-        inp.addEventListener("input", e => {
-          const passcode = e.target.dataset.passcode;
-          let val = parseInt(e.target.value) || 1;
-          if (val < 1) val = 1;
-          if (val > parseInt(e.target.max)) val = parseInt(e.target.max);
-          e.target.value = val;
-          if (selectedSelling[passcode] !== undefined) {
-            selectedSelling[passcode] = val;
-            updateSellingTotal();
+      renderSection({
+        cards: sellingCards,
+        listEl: document.getElementById("selling-list"),
+        searchInput: document.getElementById("selling-search"),
+        sortSelect: document.getElementById("selling-sort"),
+        orderBtn: document.getElementById("selling-order"),
+        withSelection: true
+      });
+
+      renderSection({
+        cards: wantedCards,
+        listEl: document.getElementById("wanted-list"),
+        searchInput: document.getElementById("wanted-search"),
+        sortSelect: document.getElementById("wanted-sort"),
+        orderBtn: document.getElementById("wanted-order")
+      });
+
+      document.getElementById("select-all-selling").addEventListener("change", e => {
+        const checkAll = e.target.checked;
+        selectedSelling = {};
+        document.querySelectorAll("#selling-list .card-checkbox").forEach(cb => {
+          if (!cb.disabled) {
+            cb.checked = checkAll;
+            const idx = cb.dataset.index;
+            const qtyInput = document.querySelector(`.quantity-input[data-index='${idx}']`);
+            if (checkAll) {
+              selectedSelling[idx] = parseInt(qtyInput.max) || 1;
+              qtyInput.value = qtyInput.max;
+            }
           }
         });
+        updateSellingTotal();
       });
-    }
-  }
 
-  sortSelect.addEventListener("change", update);
-  orderBtn.addEventListener("click", () => {
-    orderBtn.textContent = orderBtn.textContent === "Ascendente" ? "Descendente" : "Ascendente";
-    update();
-  });
-  searchInput.addEventListener("input", update);
-  update();
-}
-
-function updateSelectAllCheckbox() {
-  const allCheckboxes = document.querySelectorAll("#selling-list .card-checkbox:not(:disabled)");
-  const allChecked = Array.from(allCheckboxes).every(cb => cb.checked);
-  if (selectAllCheckbox) selectAllCheckbox.checked = allChecked;
-}
-
-// ---------------- Copy List ----------------
-function generateSellingListText() {
-  let output = [];
-  const cardCountMap = {}; // for detecting multiple IDs per card
-
-  // count how many cards share the same name
-  sellingCards.forEach(c => {
-    if (!cardCountMap[c.name]) cardCountMap[c.name] = [];
-    if (selectedSelling[c.passcode]) cardCountMap[c.name].push(c.passcode);
-  });
-
-  for (const [passcode, qty] of Object.entries(selectedSelling)) {
-    const card = sellingCards.find(c => c.passcode === passcode);
-    if (card) {
-      let line = `${qty} ${card.name}`;
-      // only add setid if there are multiple different passcodes for same name
-      if (cardCountMap[card.name].length > 1 && card.setid) {
-        const trimmedSetId = card.setid.split("-")[0]; // QoL trim before "-"
-        line += ` (${trimmedSetId})`;
-      }
-      output.push(line);
-    }
-  }
-  return output.join("\n");
-}
-
-// ---------------- Init ----------------
-(async function init() {
-  const rows = await loadCsv(csvUrl);
-  if (!rows.length) return;
-
-  const normalizedRows = rows.map(r => {
-    const obj = {};
-    for (const key in r) obj[key.trim().toLowerCase().replace(/\s+/g, "")] = r[key];
-    return obj;
-  });
-
-  sellingCards = normalizedRows.map(r => ({
-    name: r["sellingname"] || "",
-    setid: r["sellingsetid"] || "",
-    passcode: r["sellingpasscode"] || "",
-    price: r["sellingprice"] || "",
-    customImage: r["sellingimageurl"] || "",
-    quantity: r["sellingquantity"] || ""
-  })).filter(c => c.name);
-
-  wantedCards = normalizedRows.map(r => ({
-    name: r["wantedname"] || "",
-    setid: r["wantedsetid"] || "",
-    passcode: r["wantedpasscode"] || "",
-    price: r["wantedprice"] || "",
-    customImage: r["wantedimageurl"] || "",
-    quantity: r["wantedquantity"] || ""
-  })).filter(c => c.name);
-
-  const options = [
-    {value: "random", label: "Aleatório"},
-    {value: "name", label: "Nome"},
-    {value: "setid", label: "Número"},
-    {value: "passcode", label: "Código"},
-    {value: "price", label: "Preço"},
-    {value: "quantity", label: "Quantidade"}
-  ];
-  ["selling-sort", "wanted-sort"].forEach(id => {
-    const select = document.getElementById(id);
-    select.innerHTML = "";
-    options.forEach(o => {
-      const opt = document.createElement("option");
-      opt.value = o.value;
-      opt.textContent = o.label;
-      select.appendChild(opt);
-    });
-  });
-
-  renderSection({
-    cards: sellingCards,
-    listEl: document.getElementById("selling-list"),
-    searchInput: document.getElementById("selling-search"),
-    sortSelect: document.getElementById("selling-sort"),
-    orderBtn: document.getElementById("selling-order"),
-    withSelection: true
-  });
-
-  renderSection({
-    cards: wantedCards,
-    listEl: document.getElementById("wanted-list"),
-    searchInput: document.getElementById("wanted-search"),
-    sortSelect: document.getElementById("wanted-sort"),
-    orderBtn: document.getElementById("wanted-order")
-  });
-
-  // ---------------- Select All Checkbox ----------------
-  const selectAllContainer = document.getElementById("select-all-selling");
-  // convert the button into a checkbox with label
-  selectAllContainer.outerHTML = `<label class="flex items-center gap-2"><input type="checkbox" id="select-all-checkbox"> Selecionar Todos</label>`;
-  selectAllCheckbox = document.getElementById("select-all-checkbox");
-
-  selectAllCheckbox.addEventListener("change", () => {
-    selectedSelling = {};
-    const allCheckboxes = document.querySelectorAll("#selling-list .card-checkbox:not(:disabled)");
-    allCheckboxes.forEach(cb => {
-      cb.checked = selectAllCheckbox.checked;
-      const qtyInput = document.querySelector(`.quantity-input[data-passcode='${cb.dataset.passcode}']`);
-      if (selectAllCheckbox.checked) {
-        qtyInput.value = qtyInput.max;
-        selectedSelling[cb.dataset.passcode] = parseInt(qtyInput.max) || 1;
-      }
-    });
-    updateSellingTotal();
-  });
-
-  document.getElementById("copy-selling").addEventListener("click", () => {
-    const text = generateSellingListText();
-    navigator.clipboard.writeText(text).then(() => alert("Lista copiada!"));
-  });
-})();
+      document.getElementById("copy-selling").addEventListener("click", () => {
+        const text = generateSellingListText();
+        navigator.clipboard.writeText(text).then(() => alert("Lista copiada!"));
+      });
+    })();
   </script>
 </body>
 </html>
