@@ -8,7 +8,10 @@
 </head>
 <body class="bg-gray-100 min-h-screen p-6">
   <h1 class="text-3xl font-bold mb-6 text-center">Lista de Trocas do Tony</h1>
-  <p class="text-center text-gray-600 mb-6">Aqui você encontra as cartas que tenho disponíveis para troca e também as que estou procurando.
+  <p class="text-center text-gray-600 mb-6">Minha página para venda e troca de cards de Yu-Gi-Oh! Aqui você encontra os que tenho disponíveis para troca e também os que estou procurando.</p>
+
+  <!-- Warning Section -->
+  <div id="warnings" class="max-w-3xl mx-auto mb-6 text-red-600 font-semibold"></div>
 
   <div class="grid grid-cols-2 gap-8">
     <!-- Selling/Trading -->
@@ -63,7 +66,6 @@
       });
     }
 
-    // format price to Brazilian standard
     function formatPrice(value) {
       const num = parseFloat(value);
       if (isNaN(num)) return "";
@@ -88,7 +90,9 @@
           ${card.setid ? `<p class="text-sm text-gray-600">Número: ${card.setid}</p>` : ""}
           ${card.passcode ? `<p class="text-sm text-gray-600">Código: ${card.passcode}</p>` : ""}
           ${card.price ? `<p class="text-sm text-green-600">R$ ${formatPrice(card.price)}</p>` : ""}
-          ${card.quantity ? `<p class="text-sm text-blue-600">Quantidade: ${card.quantity}</p>` : ""}
+          ${card.quantity !== "" ? (parseInt(card.quantity) === 0
+            ? `<p class="text-sm font-bold text-red-600">ESGOTADO</p>`
+            : `<p class="text-sm text-blue-600">Quantidade: ${card.quantity}</p>`) : ""}
         </div>
       `;
 
@@ -114,58 +118,108 @@
       });
     }
 
-    async function fetchCardDetails(passcode) {
-      if (!passcode) return null;
-      const code = passcode.replace(/^0+/, "");
+    // ---------- Warnings ----------
+    function checkWarnings() {
+      const warnings = [];
+      const sellingMap = new Map();
+      const wantedMap = new Map();
 
-      async function fetchWithLang(lang) {
-        try {
-          const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${code}&language=${lang}`);
-          if (!res.ok) return null;
-          const data = await res.json();
-          if (data.error || !data.data?.length) return null;
-          return data.data[0];
-        } catch {
-          return null;
-        }
-      }
+      // Check duplicates in selling
+      sellingCards.forEach(c => {
+        const key = `${c.name}|${c.setid}`;
+        if (sellingMap.has(key)) warnings.push(`Duplicado em "Tenho": ${c.name} (${c.setid})`);
+        sellingMap.set(key, true);
+      });
 
-      let details = await fetchWithLang("pt");
-      if (!details) details = await fetchWithLang("en");
-      return details;
+      // Check duplicates in wanted
+      wantedCards.forEach(c => {
+        const key = `${c.name}|${c.setid}`;
+        if (wantedMap.has(key)) warnings.push(`Duplicado em "Quero": ${c.name} (${c.setid})`);
+        wantedMap.set(key, true);
+      });
+
+      // Check same name in both lists
+      const sellingNames = new Set(sellingCards.map(c => c.name));
+      const wantedNames = new Set(wantedCards.map(c => c.name));
+      sellingNames.forEach(name => {
+        if (wantedNames.has(name)) warnings.push(`"${name}" aparece em "Tenho" e "Quero"`);
+      });
+
+      document.getElementById("warnings").innerHTML = warnings.length
+        ? warnings.map(w => `<p>⚠️ ${w}</p>`).join("")
+        : "";
     }
 
-    async function showCardModal(card) {
-      const modal = document.getElementById("card-modal");
-      const modalContent = document.getElementById("modal-content");
-      modal.classList.remove("hidden");
-      modalContent.innerHTML = "<p>Carregando...</p>";
+    // ---------- Init ----------
+    (async function init() {
+      const rows = await loadCsv(csvUrl);
+      if (!rows.length) return;
 
-      const details = await fetchCardDetails(card.passcode);
+      const normalizedRows = rows.map(r => {
+        const obj = {};
+        for (const key in r) obj[key.trim().toLowerCase().replace(/\s+/g, "")] = r[key];
+        return obj;
+      });
 
-      const imageUrl = details?.card_images?.[0]?.image_url || card.customImage || `https://images.ygoprodeck.com/images/cards/${card.passcode?.replace(/^0+/, "")}.jpg`;
+      sellingCards = normalizedRows.map(r => ({
+        name: r["sellingname"] || "",
+        setid: r["sellingsetid"] || "",
+        passcode: r["sellingpasscode"] || "",
+        price: r["sellingprice"] || "",
+        customImage: r["sellingimageurl"] || "",
+        quantity: r["sellingquantity"] || ""
+      })).filter(c => c.name);
 
-      if (details) {
-        modalContent.innerHTML = `
-          <h2 class="text-xl font-bold mb-2">${details.name}</h2>
-          <img src="${imageUrl}" alt="${details.name}" class="w-40 h-56 object-contain mb-4 rounded">
-          <p><strong>Tipo:</strong> ${details.type}</p>
-          <p><strong>Level/Rank:</strong> ${details.level || details.rank || "N/A"}</p>
-          <p><strong>Ataque:</strong> ${details.atk ?? "N/A"}</p>
-          <p><strong>Defesa:</strong> ${details.def ?? "N/A"}</p>
-          <p><strong>Descrição:</strong> ${details.desc}</p>
-          <a href="https://ygoprodeck.com/card/?search=${details.id}" target="_blank" class="text-blue-600 underline">Mais informações</a>
-        `;
-      } else {
-        modalContent.innerHTML = `
-          <h2 class="text-xl font-bold mb-2">${card.name}</h2>
-          <img src="${imageUrl}" alt="${card.name}" class="w-40 h-56 object-contain mb-4 rounded">
-          <p>Informações detalhadas não encontradas.</p>
-        `;
-      }
-    }
+      wantedCards = normalizedRows.map(r => ({
+        name: r["wantedname"] || "",
+        setid: r["wantedsetid"] || "",
+        passcode: r["wantedpasscode"] || "",
+        price: r["wantedprice"] || "",
+        customImage: r["wantedimageurl"] || "",
+        quantity: r["wantedquantity"] || ""
+      })).filter(c => c.name);
 
-    // ---------- Rendering ----------
+      // Fill sort options
+      const options = [
+        {value: "random", label: "Aleatório"},
+        {value: "name", label: "Nome"},
+        {value: "setid", label: "Número"},
+        {value: "passcode", label: "Código"},
+        {value: "price", label: "Preço"},
+        {value: "quantity", label: "Quantidade"}
+      ];
+      ["selling-sort", "wanted-sort"].forEach(id => {
+        const select = document.getElementById(id);
+        select.innerHTML = "";
+        options.forEach(o => {
+          const opt = document.createElement("option");
+          opt.value = o.value;
+          opt.textContent = o.label;
+          select.appendChild(opt);
+        });
+      });
+
+      // Render
+      renderSection({
+        cards: sellingCards,
+        listEl: document.getElementById("selling-list"),
+        searchInput: document.getElementById("selling-search"),
+        sortSelect: document.getElementById("selling-sort"),
+        orderBtn: document.getElementById("selling-order")
+      });
+
+      renderSection({
+        cards: wantedCards,
+        listEl: document.getElementById("wanted-list"),
+        searchInput: document.getElementById("wanted-search"),
+        sortSelect: document.getElementById("wanted-sort"),
+        orderBtn: document.getElementById("wanted-order")
+      });
+
+      // Run warnings
+      checkWarnings();
+    })();
+
     function renderSection({cards, listEl, searchInput, sortSelect, orderBtn}) {
       function update() {
         const search = searchInput.value.toLowerCase();
@@ -197,74 +251,61 @@
     modal.addEventListener("click", e => { if(e.target === modal) modal.classList.add("hidden"); });
     document.addEventListener("keydown", e => { if(e.key === "Escape") modal.classList.add("hidden"); });
 
-    // ---------- Init ----------
-    (async function init() {
-      const rows = await loadCsv(csvUrl);
-      if (!rows.length) return;
+    async function fetchCardDetails(passcode) {
+      if (!passcode) return null;
+      const code = passcode.replace(/^0+/, "");
+      async function fetchWithLang(lang) {
+        try {
+          const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${code}&language=${lang}`);
+          if (!res.ok) return null;
+          const data = await res.json();
+          if (data.error || !data.data?.length) return null;
+          return data.data[0];
+        } catch {
+          return null;
+        }
+      }
+      let details = await fetchWithLang("pt");
+      if (!details) details = await fetchWithLang("en");
+      return details;
+    }
 
-      const normalizedRows = rows.map(r => {
-        const obj = {};
-        for (const key in r) obj[key.trim().toLowerCase().replace(/\s+/g, "")] = r[key];
-        return obj;
-      });
+    async function showCardModal(card) {
+      const modal = document.getElementById("card-modal");
+      const modalContent = document.getElementById("modal-content");
+      modal.classList.remove("hidden");
+      modalContent.innerHTML = "<p>Carregando...</p>";
 
-      sellingCards = normalizedRows.map(r => ({
-        name: r["sellingname"] || "",
-        setid: r["sellingsetid"] || "",
-        passcode: r["sellingpasscode"] || "",
-        price: r["sellingprice"] || "",
-        customImage: r["sellingimageurl"] || "",
-        quantity: r["sellingquantity"] || ""
-      })).filter(c => c.name);
+      const details = await fetchCardDetails(card.passcode);
+      const imageUrl = details?.card_images?.[0]?.image_url || card.customImage || `https://images.ygoprodeck.com/images/cards/${card.passcode?.replace(/^0+/, "")}.jpg`;
 
-      wantedCards = normalizedRows.map(r => ({
-        name: r["wantedname"] || "",
-        setid: r["wantedsetid"] || "",
-        passcode: r["wantedpasscode"] || "",
-        price: r["wantedprice"] || "",
-        customImage: r["wantedimageurl"] || "",
-        quantity: r["wantedquantity"] || ""
-      })).filter(c => c.name);
-
-      const options = [
-        {value: "random", label: "Aleatório"},
-        {value: "name", label: "Nome"},
-        {value: "setid", label: "Número"},
-        {value: "passcode", label: "Código"},
-        {value: "price", label: "Preço"},
-        {value: "quantity", label: "Quantidade"}
-      ];
-      ["selling-sort", "wanted-sort"].forEach(id => {
-        const select = document.getElementById(id);
-        select.innerHTML = "";
-        options.forEach(o => {
-          const opt = document.createElement("option");
-          opt.value = o.value;
-          opt.textContent = o.label;
-          select.appendChild(opt);
-        });
-      });
-
-      renderSection({
-        cards: sellingCards,
-        listEl: document.getElementById("selling-list"),
-        searchInput: document.getElementById("selling-search"),
-        sortSelect: document.getElementById("selling-sort"),
-        orderBtn: document.getElementById("selling-order")
-      });
-
-      renderSection({
-        cards: wantedCards,
-        listEl: document.getElementById("wanted-list"),
-        searchInput: document.getElementById("wanted-search"),
-        sortSelect: document.getElementById("wanted-sort"),
-        orderBtn: document.getElementById("wanted-order")
-      });
-    })();
+      if (details) {
+        modalContent.innerHTML = `
+          <h2 class="text-xl font-bold mb-2">${details.name}</h2>
+          <img src="${imageUrl}" alt="${details.name}" class="w-40 h-56 object-contain mb-4 rounded">
+          <p><strong>Tipo:</strong> ${details.type}</p>
+          <p><strong>Level/Rank:</strong> ${details.level || details.rank || "N/A"}</p>
+          <p><strong>Ataque:</strong> ${details.atk ?? "N/A"}</p>
+          <p><strong>Defesa:</strong> ${details.def ?? "N/A"}</p>
+          <p><strong>Descrição:</strong> ${details.desc}</p>
+          <a href="https://ygoprodeck.com/card/?search=${details.id}" target="_blank" class="text-blue-600 underline">Mais informações</a>
+        `;
+      } else {
+        modalContent.innerHTML = `
+          <h2 class="text-xl font-bold mb-2">${card.name}</h2>
+          <img src="${imageUrl}" alt="${card.name}" class="w-40 h-56 object-contain mb-4 rounded">
+          <p>Informações detalhadas não encontradas.</p>
+        `;
+      }
+    }
   </script>
+
   <div class="text-center text-gray-600 mt-12 mb-6">
-  Quer ter uma chance de ganhar TODAS os cards da minha lista? Clique <a href="https://andreasgx.github.io/ygotrades/rifa" target="_blank" class="text-blue-600 underline hover:text-blue-800">AQUI</a>!
-</div>
+    Me ajude respondendo uma pesquisa rápida. Clique 
+    <a href="https://forms.office.com/r/UUMuGPuyc2" target="_blank" class="text-blue-600 underline hover:text-blue-800">aqui</a>.
+    <p> Fale comigo no 
+      <a href="https://wa/5588997123073" target="_blank" class="text-blue-600 underline hover:text-blue-800">Whatsapp</a>.
+    </p>
+  </div>
 </body>
 </html>
-
