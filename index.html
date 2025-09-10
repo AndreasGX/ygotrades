@@ -6,9 +6,21 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <style>
-    .out-of-stock img {
-      filter: contrast(50%);
-    }
+      @font-face {
+    font-family: 'MatrixBoldSmallCaps';
+    src: url('/assets/font/MatrixBoldSmallCaps.woff2') format('woff2');
+    font-weight: normal;
+    font-style: normal;
+  }
+
+  /* Apply font to all card names */
+  .card-name {
+    font-family: 'MatrixBoldSmallCaps', sans-serif;
+  }
+
+  .out-of-stock img {
+    filter: contrast(50%);
+  }
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen p-6">
@@ -127,7 +139,7 @@
         ${checkboxHtml}
         <img src="${image}" alt="${card.name}" class="w-20 h-[86px] object-contain rounded cursor-pointer">
         <div>
-          <h4 class="font-bold">${card.name}</h4>
+          <h4 class="font-bold card-name">${card.name}</h4>
           ${card.setid ? `<p class="text-sm text-gray-600">Número: ${card.setid}</p>` : ""}
           ${card.passcode ? `<p class="text-sm text-gray-600">Código: ${card.passcode}</p>` : ""}
           ${card.price ? `<p class="text-sm text-green-600">R$ ${formatPrice(card.price)}</p>` : ""}
