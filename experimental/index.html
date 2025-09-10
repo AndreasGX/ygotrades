@@ -20,7 +20,14 @@
         <select id="selling-sort" class="border rounded p-1 text-sm"></select>
         <button id="selling-order" class="bg-gray-200 px-2 rounded text-sm">Ascendente</button>
       </div>
-      <div id="selling-list" class="grid gap-4 h-[70vh] overflow-y-auto"></div>
+      <div class="flex items-center gap-2 mb-2">
+        <input type="checkbox" id="select-all-selling">
+        <label for="select-all-selling">Selecionar todos</label>
+      </div>
+      <div id="selling-list" class="grid gap-4 h-[60vh] overflow-y-auto"></div>
+      <div class="mt-4 p-3 bg-white rounded-xl shadow-md">
+        <p class="font-bold">Total: R$ <span id="total-price">0,00</span></p>
+      </div>
     </div>
 
     <!-- Looking For -->
@@ -63,14 +70,13 @@
       });
     }
 
-    // format price to Brazilian standard
     function formatPrice(value) {
       const num = parseFloat(value);
       if (isNaN(num)) return "";
       return num.toFixed(2).replace(".", ",");
     }
 
-    function createCardElement(card) {
+    function createSellingCardElement(card, index) {
       if (!card.name) return null;
       let image = "";
       if (card.passcode) {
@@ -82,7 +88,55 @@
       const div = document.createElement("div");
       div.className = "bg-white rounded-xl shadow-md p-3 flex gap-3 items-center";
 
-      // quantidade formatada
+      let quantityDisplay = "";
+      let quantityInput = "";
+      if (card.quantity) {
+        const qty = parseInt(card.quantity);
+        if (qty === 0) {
+          quantityDisplay = `<p class="text-sm text-red-600 font-bold">ESGOTADO</p>`;
+        } else {
+          quantityInput = `
+            <div class="flex items-center gap-1">
+              <label for="qty-${index}" class="text-sm">Qtd:</label>
+              <input type="number" id="qty-${index}" min="1" max="${qty}" value="1" class="w-16 border rounded p-1 text-sm">
+            </div>
+          `;
+        }
+      }
+
+      div.innerHTML = `
+        <input type="checkbox" class="select-card" data-index="${index}">
+        <img src="${image}" alt="${card.name}" class="w-20 h-[86px] object-contain rounded cursor-pointer">
+        <div class="flex-1">
+          <h4 class="font-bold">${card.name}</h4>
+          ${card.setid ? `<p class="text-sm text-gray-600">Número: ${card.setid}</p>` : ""}
+          ${card.passcode ? `<p class="text-sm text-gray-600">Código: ${card.passcode}</p>` : ""}
+          ${card.price ? `<p class="text-sm text-green-600">R$ ${formatPrice(card.price)}</p>` : ""}
+          ${quantityDisplay}
+        </div>
+        ${quantityInput}
+      `;
+
+      div.querySelector("img")?.addEventListener("click", e => {
+        e.stopPropagation();
+        showCardModal(card);
+      });
+
+      return div;
+    }
+
+    function createWantedCardElement(card) {
+      if (!card.name) return null;
+      let image = "";
+      if (card.passcode) {
+        const code = card.passcode.replace(/^0+/, "");
+        image = `https://images.ygoprodeck.com/images/cards/${code}.jpg`;
+      }
+      if (card.customImage) image = card.customImage;
+
+      const div = document.createElement("div");
+      div.className = "bg-white rounded-xl shadow-md p-3 flex gap-3 items-center";
+
       let quantityDisplay = "";
       if (card.quantity) {
         if (parseInt(card.quantity) === 0) {
@@ -177,7 +231,41 @@
     }
 
     // ---------- Rendering ----------
-    function renderSection({cards, listEl, searchInput, sortSelect, orderBtn}) {
+    function renderSellingSection({cards, listEl, searchInput, sortSelect, orderBtn}) {
+      function update() {
+        const search = searchInput.value.toLowerCase();
+        const sorted = sortCards(cards, sortSelect.value, orderBtn.textContent === "Ascendente");
+        listEl.innerHTML = "";
+
+        let hasResults = false;
+        sorted.forEach((card, index) => {
+          const values = Object.values(card).join(" ").toLowerCase();
+          if (values.includes(search)) {
+            const el = createSellingCardElement(card, index);
+            if (el) {
+              listEl.appendChild(el);
+              hasResults = true;
+            }
+          }
+        });
+
+        if (!hasResults) {
+          listEl.innerHTML = `<p class="text-gray-500 italic text-center">Ops! Nada para ver aqui...</p>`;
+        }
+
+        attachSelectionHandlers();
+      }
+
+      sortSelect.addEventListener("change", update);
+      orderBtn.addEventListener("click", () => {
+        orderBtn.textContent = orderBtn.textContent === "Ascendente" ? "Descendente" : "Ascendente";
+        update();
+      });
+      searchInput.addEventListener("input", update);
+      update();
+    }
+
+    function renderWantedSection({cards, listEl, searchInput, sortSelect, orderBtn}) {
       function update() {
         const search = searchInput.value.toLowerCase();
         const sorted = sortCards(cards, sortSelect.value, orderBtn.textContent === "Ascendente");
@@ -187,7 +275,7 @@
         sorted.forEach(card => {
           const values = Object.values(card).join(" ").toLowerCase();
           if (values.includes(search)) {
-            const el = createCardElement(card);
+            const el = createWantedCardElement(card);
             if (el) {
               listEl.appendChild(el);
               hasResults = true;
@@ -207,6 +295,49 @@
       });
       searchInput.addEventListener("input", update);
       update();
+    }
+
+    // ---------- Selection System ----------
+    function attachSelectionHandlers() {
+      const checkboxes = document.querySelectorAll(".select-card");
+      const selectAll = document.getElementById("select-all-selling");
+      const totalEl = document.getElementById("total-price");
+
+      function calculateTotal() {
+        let total = 0;
+        checkboxes.forEach(cb => {
+          if (cb.checked) {
+            const index = cb.dataset.index;
+            const card = sellingCards[index];
+            const qtyInput = document.getElementById(`qty-${index}`);
+            const qty = qtyInput ? parseInt(qtyInput.value) || 1 : 1;
+            const price = parseFloat(card.price) || 0;
+            total += price * qty;
+          }
+        });
+        totalEl.textContent = total.toFixed(2).replace(".", ",");
+      }
+
+      checkboxes.forEach(cb => {
+        cb.addEventListener("change", calculateTotal);
+        const index = cb.dataset.index;
+        const qtyInput = document.getElementById(`qty-${index}`);
+        if (qtyInput) qtyInput.addEventListener("input", calculateTotal);
+      });
+
+      selectAll.addEventListener("change", () => {
+        checkboxes.forEach(cb => {
+          cb.checked = selectAll.checked;
+          const index = cb.dataset.index;
+          const qtyInput = document.getElementById(`qty-${index}`);
+          if (qtyInput && selectAll.checked) {
+            qtyInput.value = qtyInput.max; // set to max
+          }
+        });
+        calculateTotal();
+      });
+
+      calculateTotal();
     }
 
     // ---------- Modal Close ----------
@@ -266,7 +397,7 @@
         });
       });
 
-      renderSection({
+      renderSellingSection({
         cards: sellingCards,
         listEl: document.getElementById("selling-list"),
         searchInput: document.getElementById("selling-search"),
@@ -274,18 +405,7 @@
         orderBtn: document.getElementById("selling-order")
       });
 
-      renderSection({
+      renderWantedSection({
         cards: wantedCards,
         listEl: document.getElementById("wanted-list"),
         searchInput: document.getElementById("wanted-search"),
-        sortSelect: document.getElementById("wanted-sort"),
-        orderBtn: document.getElementById("wanted-order")
-      });
-    })();
-  </script>
-  <div class="text-center text-gray-600 mt-12 mb-6">
-    Me ajude respondendo uma pesquisa rápida. Clique <a href="https://forms.office.com/r/UUMuGPuyc2" target="_blank" class="text-blue-600 underline hover:text-blue-800">aqui</a>.
-    <p>Fale comigo no <a href="https://wa/5588997123073" target="_blank" class="text-blue-600 underline hover:text-blue-800">Whatsapp</a>.</p>
-  </div>
-</body>
-</html>
