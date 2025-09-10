@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Lista de Trocas do Tony</title>
+  <title>Lista de Trocas do Tony (corrigida)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <style>
@@ -58,12 +58,13 @@
   </div>
 
   <script>
+    // CSV público
     const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQpJVCUhWxyH_TM4-83ra9FXLCES8yqIBVQy3ed6OoVZwbSH4LkoVh7gBn6K2iz32cQNftsj1E-UIiK/pub?output=csv";
 
     let sellingCards = [];
     let wantedCards = [];
-    let selectedSelling = {}; 
-    let currentSellingOrder = [];
+    let selectedSelling = {}; // { indexInSellingArray: quantity }
+    let currentSellingOrder = []; // array of indices (into sellingCards) in the currently rendered order
 
     async function loadCsv(url) {
       return new Promise((resolve, reject) => {
@@ -78,17 +79,15 @@
     }
 
     function formatPrice(value) {
-      const num = parseFloat(value);
+      const num = parseFloat((value || "").toString().replace(',', '.'));
       if (isNaN(num)) return "";
-      return num.toFixed(2).replace(".", ",");
+      return num.toFixed(2).replace('.', ',');
     }
 
     function createCardElement(card, index, withSelection = false) {
       if (!card.name) return null;
 
-      // Hide out-of-stock cards
-      if (parseInt(card.quantity) === 0) return null;
-
+      // image logic
       let image = "";
       if (card.passcode) {
         const code = card.passcode.replace(/^0+/, "");
@@ -99,13 +98,33 @@
       const div = document.createElement("div");
       div.className = "bg-white rounded-xl shadow-md p-3 flex gap-3 items-center";
 
+      const qtyNum = parseInt(card.quantity, 10);
+      const isOutOfStock = Number.isFinite(qtyNum) ? qtyNum === 0 : false;
+
+      if (isOutOfStock) div.classList.add("out-of-stock");
+
+      // Build conditional HTML: checkbox & quantity input only when withSelection && quantity > 0
+      let checkboxHtml = "";
+      let quantityHtml = "";
+      if (withSelection && !isOutOfStock) {
+        checkboxHtml = `<input type="checkbox" class="card-checkbox" data-index="${index}">`;
+        const maxAttr = Math.max(1, qtyNum || 1);
+        quantityHtml = `<input type="number" min="1" max="${maxAttr}" value="1" class="quantity-input border rounded w-16 p-1 mt-1 text-sm" data-index="${index}">`;
+      }
+
       let quantityDisplay = "";
-      if (card.quantity) {
+      if (card.quantity !== undefined && card.quantity !== "") {
         quantityDisplay = `<p class="text-sm text-blue-600">Qtd: ${card.quantity}</p>`;
       }
 
+      // If out of stock, show an "Esgotado" badge
+      let outOfStockBadge = "";
+      if (isOutOfStock) {
+        outOfStockBadge = `<p class="text-sm text-red-500 font-semibold">Esgotado</p>`;
+      }
+
       div.innerHTML = `
-        <input type="checkbox" class="card-checkbox" data-index="${index}">
+        ${checkboxHtml}
         <img src="${image}" alt="${card.name}" class="w-20 h-[86px] object-contain rounded cursor-pointer">
         <div>
           <h4 class="font-bold">${card.name}</h4>
@@ -113,17 +132,16 @@
           ${card.passcode ? `<p class="text-sm text-gray-600">Código: ${card.passcode}</p>` : ""}
           ${card.price ? `<p class="text-sm text-green-600">R$ ${formatPrice(card.price)}</p>` : ""}
           ${quantityDisplay}
-          <input type="number" min="1" max="${card.quantity || 1}" value="1" class="quantity-input border rounded w-16 p-1 mt-1 text-sm" data-index="${index}">
+          ${outOfStockBadge}
+          ${quantityHtml}
         </div>
       `;
 
+      // open modal on image click
       div.querySelector("img")?.addEventListener("click", e => {
         e.stopPropagation();
         showCardModal(card);
       });
-
-      // Grey out images if quantity=0 (for future-proofing)
-      if (parseInt(card.quantity) === 0) div.classList.add("out-of-stock");
 
       return div;
     }
@@ -131,10 +149,14 @@
     function updateSellingTotal() {
       let total = 0;
       for (const [key, qty] of Object.entries(selectedSelling)) {
-        const card = sellingCards[key];
-        if (card) total += (parseFloat(card.price) || 0) * qty;
+        const idx = parseInt(key, 10);
+        const card = sellingCards[idx];
+        if (!card) continue;
+        const rawPrice = (card.price || "").toString().replace(',', '.');
+        const priceNum = parseFloat(rawPrice) || 0;
+        total += priceNum * (Number(qty) || 0);
       }
-      document.getElementById("selling-total").textContent = `Total: R$ ${total.toFixed(2).replace(".", ",")}`;
+      document.getElementById("selling-total").textContent = `Total: R$ ${total.toFixed(2).replace('.', ',')}`;
     }
 
     function generateSellingListText() {
@@ -158,19 +180,21 @@
     function renderSection({cards, listEl, searchInput, sortSelect, orderBtn, withSelection = false}) {
       function update() {
         const search = searchInput.value.toLowerCase();
-        const sorted = sortCards(cards, sortSelect.value, orderBtn.textContent === "Ascendente");
+        const sortedIndices = sortCards(cards, sortSelect.value, orderBtn.textContent === "Ascendente");
         listEl.innerHTML = "";
 
         let hasResults = false;
-        const indices = [];
-        sorted.forEach((card, index) => {
+        const visibleIndices = [];
+
+        sortedIndices.forEach(index => {
+          const card = cards[index];
           const values = Object.values(card).join(" ").toLowerCase();
           if (values.includes(search)) {
             const el = createCardElement(card, index, withSelection);
             if (el) {
               listEl.appendChild(el);
               hasResults = true;
-              indices.push(index);
+              visibleIndices.push(index);
             }
           }
         });
@@ -180,14 +204,15 @@
         }
 
         if (withSelection) {
-          currentSellingOrder = indices;
+          currentSellingOrder = visibleIndices;
 
-          listEl.querySelectorAll(".card-checkbox").forEach(cb => {
-            cb.addEventListener("change", e => {
+          // checkbox events (only present for in-stock cards)
+          listEl.querySelectorAll('.card-checkbox').forEach(cb => {
+            cb.addEventListener('change', e => {
               const idx = e.target.dataset.index;
               const qtyInput = listEl.querySelector(`.quantity-input[data-index='${idx}']`);
               if (e.target.checked) {
-                selectedSelling[idx] = parseInt(qtyInput.value) || 1;
+                selectedSelling[idx] = parseInt(qtyInput?.value || 1, 10) || 1;
               } else {
                 delete selectedSelling[idx];
               }
@@ -195,10 +220,11 @@
             });
           });
 
-          listEl.querySelectorAll(".quantity-input").forEach(inp => {
-            inp.addEventListener("input", e => {
+          // quantity change events
+          listEl.querySelectorAll('.quantity-input').forEach(inp => {
+            inp.addEventListener('input', e => {
               const idx = e.target.dataset.index;
-              const val = parseInt(e.target.value) || 1;
+              const val = parseInt(e.target.value, 10) || 1;
               if (selectedSelling[idx] !== undefined) {
                 selectedSelling[idx] = val;
                 updateSellingTotal();
@@ -217,18 +243,30 @@
       update();
     }
 
+    // returns an array of indices (into cards) sorted according to key
     function sortCards(cards, key, ascending = true) {
-      if (key === "random") return [...cards].sort(() => Math.random() - 0.5);
-      return [...cards].sort((a, b) => {
-        let valA = a[key] || "";
-        let valB = b[key] || "";
-        if (key === "name") return (valA).localeCompare(valB, "pt", { sensitivity: 'base' }) * (ascending ? 1 : -1);
-        if (["price", "passcode", "quantity"].includes(key)) {
-          valA = parseFloat(valA) || 0;
-          valB = parseFloat(valB) || 0;
+      const indices = cards.map((_, i) => i);
+      if (key === 'random') return indices.sort(() => Math.random() - 0.5);
+
+      indices.sort((i, j) => {
+        let valA = cards[i][key] || "";
+        let valB = cards[j][key] || "";
+
+        if (key === 'name') {
+          return (valA).toString().localeCompare(valB.toString(), 'pt', { sensitivity: 'base' }) * (ascending ? 1 : -1);
         }
-        return ascending ? (valA > valB ? 1 : -1) : (valA < valB ? 1 : -1);
+
+        if (["price", "passcode", "quantity"].includes(key)) {
+          const aNum = parseFloat((valA || '').toString().replace(',', '.')) || 0;
+          const bNum = parseFloat((valB || '').toString().replace(',', '.')) || 0;
+          return ascending ? (aNum - bNum) : (bNum - aNum);
+        }
+
+        // fallback string compare
+        return ascending ? ('' + valA).localeCompare('' + valB, 'pt', { sensitivity: 'base' }) : ('' + valB).localeCompare('' + valA, 'pt', { sensitivity: 'base' });
       });
+
+      return indices;
     }
 
     async function fetchCardDetails(passcode) {
@@ -252,7 +290,7 @@
       modalContent.innerHTML = "<p>Carregando...</p>";
 
       const details = await fetchCardDetails(card.passcode);
-      const imageUrl = details?.card_images?.[0]?.image_url || card.customImage || `https://images.ygoprodeck.com/images/cards/${card.passcode?.replace(/^0+/, "")}.jpg`;
+      const imageUrl = details?.card_images?.[0]?.image_url || card.customImage || (card.passcode ? `https://images.ygoprodeck.com/images/cards/${card.passcode.replace(/^0+/, "")}.jpg` : '');
 
       if (details) {
         modalContent.innerHTML = `
@@ -269,6 +307,7 @@
       }
     }
 
+    // modal handlers
     const modal = document.getElementById("card-modal");
     document.getElementById("modal-close").addEventListener("click", () => modal.classList.add("hidden"));
     modal.addEventListener("click", e => { if (e.target === modal) modal.classList.add("hidden"); });
@@ -347,9 +386,10 @@
           cb.checked = checkAll;
           const idx = cb.dataset.index;
           const qtyInput = document.querySelector(`.quantity-input[data-index='${idx}']`);
-          if (checkAll) {
-            selectedSelling[idx] = parseInt(qtyInput.value) || 1;
-            qtyInput.value = qtyInput.max;
+          if (checkAll && qtyInput) {
+            // set quantity to max available then add to selection
+            qtyInput.value = qtyInput.max || qtyInput.value || 1;
+            selectedSelling[idx] = parseInt(qtyInput.value, 10) || 1;
           }
         });
         updateSellingTotal();
@@ -357,10 +397,12 @@
 
       document.getElementById("copy-selling").addEventListener("click", () => {
         const text = generateSellingListText();
+        if (!text) return alert('Nenhuma carta selecionada.');
         navigator.clipboard.writeText(text).then(() => alert("Lista copiada!"));
       });
     })();
   </script>
+
   <div class="text-center text-gray-600 mt-12 mb-6">
     Decidiu e copiou sua lista? Fale comigo no <a href="https://wa/5588997123073" target="_blank" class="text-green-600 underline hover:text-green-800">Whatsapp</a>.
   </div>
