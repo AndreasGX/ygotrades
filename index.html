@@ -5,6 +5,11 @@
   <title>Lista de Trocas do Tony</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <style>
+    .out-of-stock img {
+      filter: grayscale(100%) brightness(50%);
+    }
+  </style>
 </head>
 <body class="bg-gray-100 min-h-screen p-6">
   <h1 class="text-3xl font-bold mb-6 text-center">Lista de Trocas do Tony</h1>
@@ -15,12 +20,20 @@
     <div>
       <h2 class="text-xl font-semibold mb-2">Tenho</h2>
       <input id="selling-search" type="text" placeholder="Pesquisar..." class="w-full mb-2 border p-1 rounded text-sm">
-      <div class="flex items-center gap-2 mb-2">
+      <div class="flex items-center gap-4 mb-2">
         <label>Ordenar por:</label>
         <select id="selling-sort" class="border rounded p-1 text-sm"></select>
         <button id="selling-order" class="bg-gray-200 px-2 rounded text-sm">Ascendente</button>
+        <label class="flex items-center gap-2 ml-auto">
+          <input type="checkbox" id="select-all-selling" class="h-4 w-4">
+          Selecionar Todos
+        </label>
       </div>
-      <div id="selling-list" class="grid gap-4 h-[70vh] overflow-y-auto"></div>
+      <div id="selling-list" class="grid gap-4 h-[70vh] overflow-y-auto mb-4"></div>
+      <div class="flex items-center gap-4">
+        <button id="copy-selling" class="bg-green-500 text-white px-3 py-1 rounded text-sm">Copiar Lista</button>
+        <p id="selling-total" class="font-semibold text-lg">Total: R$ 0,00</p>
+      </div>
     </div>
 
     <!-- Looking For -->
@@ -49,8 +62,9 @@
 
     let sellingCards = [];
     let wantedCards = [];
+    let selectedSelling = {}; 
+    let currentSellingOrder = [];
 
-    // ---------- Helpers ----------
     async function loadCsv(url) {
       return new Promise((resolve, reject) => {
         Papa.parse(url, {
@@ -63,15 +77,18 @@
       });
     }
 
-    // format price to Brazilian standard
     function formatPrice(value) {
       const num = parseFloat(value);
       if (isNaN(num)) return "";
       return num.toFixed(2).replace(".", ",");
     }
 
-    function createCardElement(card) {
+    function createCardElement(card, index, withSelection = false) {
       if (!card.name) return null;
+
+      // Hide out-of-stock cards
+      if (parseInt(card.quantity) === 0) return null;
+
       let image = "";
       if (card.passcode) {
         const code = card.passcode.replace(/^0+/, "");
@@ -82,17 +99,13 @@
       const div = document.createElement("div");
       div.className = "bg-white rounded-xl shadow-md p-3 flex gap-3 items-center";
 
-      // quantidade formatada
       let quantityDisplay = "";
       if (card.quantity) {
-        if (parseInt(card.quantity) === 0) {
-          quantityDisplay = `<p class="text-sm text-red-600 font-bold">ESGOTADO</p>`;
-        } else {
-          quantityDisplay = `<p class="text-sm text-blue-600">Quantidade: ${card.quantity}</p>`;
-        }
+        quantityDisplay = `<p class="text-sm text-blue-600">Qtd: ${card.quantity}</p>`;
       }
 
       div.innerHTML = `
+        <input type="checkbox" class="card-checkbox" data-index="${index}">
         <img src="${image}" alt="${card.name}" class="w-20 h-[86px] object-contain rounded cursor-pointer">
         <div>
           <h4 class="font-bold">${card.name}</h4>
@@ -100,6 +113,7 @@
           ${card.passcode ? `<p class="text-sm text-gray-600">Código: ${card.passcode}</p>` : ""}
           ${card.price ? `<p class="text-sm text-green-600">R$ ${formatPrice(card.price)}</p>` : ""}
           ${quantityDisplay}
+          <input type="number" min="1" max="${card.quantity || 1}" value="1" class="quantity-input border rounded w-16 p-1 mt-1 text-sm" data-index="${index}">
         </div>
       `;
 
@@ -108,7 +122,99 @@
         showCardModal(card);
       });
 
+      // Grey out images if quantity=0 (for future-proofing)
+      if (parseInt(card.quantity) === 0) div.classList.add("out-of-stock");
+
       return div;
+    }
+
+    function updateSellingTotal() {
+      let total = 0;
+      for (const [key, qty] of Object.entries(selectedSelling)) {
+        const card = sellingCards[key];
+        if (card) total += (parseFloat(card.price) || 0) * qty;
+      }
+      document.getElementById("selling-total").textContent = `Total: R$ ${total.toFixed(2).replace(".", ",")}`;
+    }
+
+    function generateSellingListText() {
+      let output = [];
+      currentSellingOrder.forEach(idx => {
+        const card = sellingCards[idx];
+        if (!card) return;
+        if (!selectedSelling[idx]) return;
+
+        const qty = selectedSelling[idx];
+        let line = `${qty} ${card.name}`;
+        if (card.setid) {
+          const trimmedSet = card.setid.split("-")[0];
+          line += ` (${trimmedSet})`;
+        }
+        output.push(line);
+      });
+      return output.join("\n");
+    }
+
+    function renderSection({cards, listEl, searchInput, sortSelect, orderBtn, withSelection = false}) {
+      function update() {
+        const search = searchInput.value.toLowerCase();
+        const sorted = sortCards(cards, sortSelect.value, orderBtn.textContent === "Ascendente");
+        listEl.innerHTML = "";
+
+        let hasResults = false;
+        const indices = [];
+        sorted.forEach((card, index) => {
+          const values = Object.values(card).join(" ").toLowerCase();
+          if (values.includes(search)) {
+            const el = createCardElement(card, index, withSelection);
+            if (el) {
+              listEl.appendChild(el);
+              hasResults = true;
+              indices.push(index);
+            }
+          }
+        });
+
+        if (!hasResults) {
+          listEl.innerHTML = `<p class="text-gray-500 italic text-center">Ops! Nada para ver aqui...</p>`;
+        }
+
+        if (withSelection) {
+          currentSellingOrder = indices;
+
+          listEl.querySelectorAll(".card-checkbox").forEach(cb => {
+            cb.addEventListener("change", e => {
+              const idx = e.target.dataset.index;
+              const qtyInput = listEl.querySelector(`.quantity-input[data-index='${idx}']`);
+              if (e.target.checked) {
+                selectedSelling[idx] = parseInt(qtyInput.value) || 1;
+              } else {
+                delete selectedSelling[idx];
+              }
+              updateSellingTotal();
+            });
+          });
+
+          listEl.querySelectorAll(".quantity-input").forEach(inp => {
+            inp.addEventListener("input", e => {
+              const idx = e.target.dataset.index;
+              const val = parseInt(e.target.value) || 1;
+              if (selectedSelling[idx] !== undefined) {
+                selectedSelling[idx] = val;
+                updateSellingTotal();
+              }
+            });
+          });
+        }
+      }
+
+      sortSelect.addEventListener("change", update);
+      orderBtn.addEventListener("click", () => {
+        orderBtn.textContent = orderBtn.textContent === "Ascendente" ? "Descendente" : "Ascendente";
+        update();
+      });
+      searchInput.addEventListener("input", update);
+      update();
     }
 
     function sortCards(cards, key, ascending = true) {
@@ -128,22 +234,15 @@
     async function fetchCardDetails(passcode) {
       if (!passcode) return null;
       const code = passcode.replace(/^0+/, "");
-
-      async function fetchWithLang(lang) {
-        try {
-          const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${code}&language=${lang}`);
-          if (!res.ok) return null;
-          const data = await res.json();
-          if (data.error || !data.data?.length) return null;
-          return data.data[0];
-        } catch {
-          return null;
-        }
+      try {
+        const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${code}&language=pt`);
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (data.error || !data.data?.length) return null;
+        return data.data[0];
+      } catch {
+        return null;
       }
-
-      let details = await fetchWithLang("pt");
-      if (!details) details = await fetchWithLang("en");
-      return details;
     }
 
     async function showCardModal(card) {
@@ -153,7 +252,6 @@
       modalContent.innerHTML = "<p>Carregando...</p>";
 
       const details = await fetchCardDetails(card.passcode);
-
       const imageUrl = details?.card_images?.[0]?.image_url || card.customImage || `https://images.ygoprodeck.com/images/cards/${card.passcode?.replace(/^0+/, "")}.jpg`;
 
       if (details) {
@@ -165,60 +263,17 @@
           <p><strong>Ataque:</strong> ${details.atk ?? "N/A"}</p>
           <p><strong>Defesa:</strong> ${details.def ?? "N/A"}</p>
           <p><strong>Descrição:</strong> ${details.desc}</p>
-          <a href="https://ygoprodeck.com/card/?search=${details.id}" target="_blank" class="text-blue-600 underline">Mais informações</a>
         `;
       } else {
-        modalContent.innerHTML = `
-          <h2 class="text-xl font-bold mb-2">${card.name}</h2>
-          <img src="${imageUrl}" alt="${card.name}" class="w-40 h-56 object-contain mb-4 rounded">
-          <p>Informações detalhadas não encontradas.</p>
-        `;
+        modalContent.innerHTML = `<h2 class="text-xl font-bold mb-2">${card.name}</h2><p>Informações detalhadas não encontradas.</p>`;
       }
     }
 
-    // ---------- Rendering ----------
-    function renderSection({cards, listEl, searchInput, sortSelect, orderBtn}) {
-      function update() {
-        const search = searchInput.value.toLowerCase();
-        const sorted = sortCards(cards, sortSelect.value, orderBtn.textContent === "Ascendente");
-        listEl.innerHTML = "";
-
-        let hasResults = false;
-        sorted.forEach(card => {
-          const values = Object.values(card).join(" ").toLowerCase();
-          if (values.includes(search)) {
-            const el = createCardElement(card);
-            if (el) {
-              listEl.appendChild(el);
-              hasResults = true;
-            }
-          }
-        });
-
-        if (!hasResults) {
-          listEl.innerHTML = `<p class="text-gray-500 italic text-center">Ops! Nada para ver aqui...</p>`;
-        }
-      }
-
-      sortSelect.addEventListener("change", update);
-      orderBtn.addEventListener("click", () => {
-        orderBtn.textContent = orderBtn.textContent === "Ascendente" ? "Descendente" : "Ascendente";
-        update();
-      });
-      searchInput.addEventListener("input", update);
-      update();
-    }
-
-    // ---------- Modal Close ----------
     const modal = document.getElementById("card-modal");
-    document.getElementById("modal-close").addEventListener("click", () => {
-      modal.classList.add("hidden");
-      document.getElementById("modal-content").innerHTML = "";
-    });
-    modal.addEventListener("click", e => { if(e.target === modal) modal.classList.add("hidden"); });
-    document.addEventListener("keydown", e => { if(e.key === "Escape") modal.classList.add("hidden"); });
+    document.getElementById("modal-close").addEventListener("click", () => modal.classList.add("hidden"));
+    modal.addEventListener("click", e => { if (e.target === modal) modal.classList.add("hidden"); });
+    document.addEventListener("keydown", e => { if (e.key === "Escape") modal.classList.add("hidden"); });
 
-    // ---------- Init ----------
     (async function init() {
       const rows = await loadCsv(csvUrl);
       if (!rows.length) return;
@@ -271,7 +326,8 @@
         listEl: document.getElementById("selling-list"),
         searchInput: document.getElementById("selling-search"),
         sortSelect: document.getElementById("selling-sort"),
-        orderBtn: document.getElementById("selling-order")
+        orderBtn: document.getElementById("selling-order"),
+        withSelection: true
       });
 
       renderSection({
@@ -281,11 +337,32 @@
         sortSelect: document.getElementById("wanted-sort"),
         orderBtn: document.getElementById("wanted-order")
       });
+
+      // Select All checkbox (unchecked by default)
+      document.getElementById("select-all-selling").checked = false;
+      document.getElementById("select-all-selling").addEventListener("change", e => {
+        const checkAll = e.target.checked;
+        selectedSelling = {};
+        document.querySelectorAll("#selling-list .card-checkbox").forEach(cb => {
+          cb.checked = checkAll;
+          const idx = cb.dataset.index;
+          const qtyInput = document.querySelector(`.quantity-input[data-index='${idx}']`);
+          if (checkAll) {
+            selectedSelling[idx] = parseInt(qtyInput.value) || 1;
+            qtyInput.value = qtyInput.max;
+          }
+        });
+        updateSellingTotal();
+      });
+
+      document.getElementById("copy-selling").addEventListener("click", () => {
+        const text = generateSellingListText();
+        navigator.clipboard.writeText(text).then(() => alert("Lista copiada!"));
+      });
     })();
   </script>
   <div class="text-center text-gray-600 mt-12 mb-6">
-    Me ajude respondendo uma pesquisa rápida. Clique <a href="https://forms.office.com/r/UUMuGPuyc2" target="_blank" class="text-blue-600 underline hover:text-blue-800">aqui</a>.
-    <p>Fale comigo no <a href="https://wa/5588997123073" target="_blank" class="text-blue-600 underline hover:text-blue-800">Whatsapp</a>.</p>
+    Decidiu e copiou sua lista? Fale comigo no <a href="https://wa/5588997123073" target="_blank" class="text-blue-600 underline hover:text-blue-800">Whatsapp</a>.
   </div>
 </body>
 </html>
