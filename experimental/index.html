@@ -20,14 +20,12 @@
         <select id="selling-sort" class="border rounded p-1 text-sm"></select>
         <button id="selling-order" class="bg-gray-200 px-2 rounded text-sm">Ascendente</button>
       </div>
-      <div class="flex items-center gap-2 mb-2">
-        <input type="checkbox" id="select-all-selling">
-        <label for="select-all-selling">Selecionar todos</label>
+      <div class="flex items-center gap-4 mb-2">
+        <button id="select-all-selling" class="bg-blue-500 text-white px-3 py-1 rounded text-sm">Selecionar Todos</button>
+        <button id="copy-selling" class="bg-green-500 text-white px-3 py-1 rounded text-sm">Copiar Lista</button>
       </div>
-      <div id="selling-list" class="grid gap-4 h-[60vh] overflow-y-auto"></div>
-      <div class="mt-4 p-3 bg-white rounded-xl shadow-md">
-        <p class="font-bold">Total: R$ <span id="total-price">0,00</span></p>
-      </div>
+      <p id="selling-total" class="font-semibold text-lg mb-2">Total: R$ 0,00</p>
+      <div id="selling-list" class="grid gap-4 h-[70vh] overflow-y-auto"></div>
     </div>
 
     <!-- Looking For -->
@@ -56,8 +54,8 @@
 
     let sellingCards = [];
     let wantedCards = [];
+    let selectedSelling = {}; // {passcode: quantidade}
 
-    // ---------- Helpers ----------
     async function loadCsv(url) {
       return new Promise((resolve, reject) => {
         Papa.parse(url, {
@@ -76,56 +74,7 @@
       return num.toFixed(2).replace(".", ",");
     }
 
-    function createSellingCardElement(card, index) {
-      if (!card.name) return null;
-      let image = "";
-      if (card.passcode) {
-        const code = card.passcode.replace(/^0+/, "");
-        image = `https://images.ygoprodeck.com/images/cards/${code}.jpg`;
-      }
-      if (card.customImage) image = card.customImage;
-
-      const div = document.createElement("div");
-      div.className = "bg-white rounded-xl shadow-md p-3 flex gap-3 items-center";
-
-      let quantityDisplay = "";
-      let quantityInput = "";
-      if (card.quantity) {
-        const qty = parseInt(card.quantity);
-        if (qty === 0) {
-          quantityDisplay = `<p class="text-sm text-red-600 font-bold">ESGOTADO</p>`;
-        } else {
-          quantityInput = `
-            <div class="flex items-center gap-1">
-              <label for="qty-${index}" class="text-sm">Qtd:</label>
-              <input type="number" id="qty-${index}" min="1" max="${qty}" value="1" class="w-16 border rounded p-1 text-sm">
-            </div>
-          `;
-        }
-      }
-
-      div.innerHTML = `
-        <input type="checkbox" class="select-card" data-index="${index}">
-        <img src="${image}" alt="${card.name}" class="w-20 h-[86px] object-contain rounded cursor-pointer">
-        <div class="flex-1">
-          <h4 class="font-bold">${card.name}</h4>
-          ${card.setid ? `<p class="text-sm text-gray-600">Número: ${card.setid}</p>` : ""}
-          ${card.passcode ? `<p class="text-sm text-gray-600">Código: ${card.passcode}</p>` : ""}
-          ${card.price ? `<p class="text-sm text-green-600">R$ ${formatPrice(card.price)}</p>` : ""}
-          ${quantityDisplay}
-        </div>
-        ${quantityInput}
-      `;
-
-      div.querySelector("img")?.addEventListener("click", e => {
-        e.stopPropagation();
-        showCardModal(card);
-      });
-
-      return div;
-    }
-
-    function createWantedCardElement(card) {
+    function createCardElement(card, withSelection = false) {
       if (!card.name) return null;
       let image = "";
       if (card.passcode) {
@@ -142,11 +91,12 @@
         if (parseInt(card.quantity) === 0) {
           quantityDisplay = `<p class="text-sm text-red-600 font-bold">ESGOTADO</p>`;
         } else {
-          quantityDisplay = `<p class="text-sm text-blue-600">Quantidade: ${card.quantity}</p>`;
+          quantityDisplay = `<p class="text-sm text-blue-600">Qtd: ${card.quantity}</p>`;
         }
       }
 
       div.innerHTML = `
+        <input type="checkbox" class="card-checkbox" data-passcode="${card.passcode}" ${parseInt(card.quantity) === 0 ? "disabled" : ""}>
         <img src="${image}" alt="${card.name}" class="w-20 h-[86px] object-contain rounded cursor-pointer">
         <div>
           <h4 class="font-bold">${card.name}</h4>
@@ -154,6 +104,7 @@
           ${card.passcode ? `<p class="text-sm text-gray-600">Código: ${card.passcode}</p>` : ""}
           ${card.price ? `<p class="text-sm text-green-600">R$ ${formatPrice(card.price)}</p>` : ""}
           ${quantityDisplay}
+          <input type="number" min="1" max="${card.quantity || 1}" value="1" class="quantity-input border rounded w-16 p-1 mt-1 text-sm" data-passcode="${card.passcode}" ${parseInt(card.quantity) === 0 ? "disabled" : ""}>
         </div>
       `;
 
@@ -163,6 +114,86 @@
       });
 
       return div;
+    }
+
+    function updateSellingTotal() {
+      let total = 0;
+      for (const [passcode, qty] of Object.entries(selectedSelling)) {
+        const card = sellingCards.find(c => c.passcode === passcode);
+        if (card) total += (parseFloat(card.price) || 0) * qty;
+      }
+      document.getElementById("selling-total").textContent = `Total: R$ ${total.toFixed(2).replace(".", ",")}`;
+    }
+
+    function generateSellingListText() {
+      let output = [];
+      for (const [passcode, qty] of Object.entries(selectedSelling)) {
+        const card = sellingCards.find(c => c.passcode === passcode);
+        if (card) {
+          let line = `'${qty}' ${card.name}`;
+          if (card.setid) line += ` (${card.setid})`;
+          output.push(line);
+        }
+      }
+      return output.join("\n");
+    }
+
+    function renderSection({cards, listEl, searchInput, sortSelect, orderBtn, withSelection = false}) {
+      function update() {
+        const search = searchInput.value.toLowerCase();
+        const sorted = sortCards(cards, sortSelect.value, orderBtn.textContent === "Ascendente");
+        listEl.innerHTML = "";
+
+        let hasResults = false;
+        sorted.forEach(card => {
+          const values = Object.values(card).join(" ").toLowerCase();
+          if (values.includes(search)) {
+            const el = createCardElement(card, withSelection);
+            if (el) {
+              listEl.appendChild(el);
+              hasResults = true;
+            }
+          }
+        });
+
+        if (!hasResults) {
+          listEl.innerHTML = `<p class="text-gray-500 italic text-center">Ops! Nada para ver aqui...</p>`;
+        }
+
+        if (withSelection) {
+          listEl.querySelectorAll(".card-checkbox").forEach(cb => {
+            cb.addEventListener("change", e => {
+              const passcode = e.target.dataset.passcode;
+              const qtyInput = listEl.querySelector(`.quantity-input[data-passcode='${passcode}']`);
+              if (e.target.checked) {
+                selectedSelling[passcode] = parseInt(qtyInput.value) || 1;
+              } else {
+                delete selectedSelling[passcode];
+              }
+              updateSellingTotal();
+            });
+          });
+
+          listEl.querySelectorAll(".quantity-input").forEach(inp => {
+            inp.addEventListener("input", e => {
+              const passcode = e.target.dataset.passcode;
+              const val = parseInt(e.target.value) || 1;
+              if (selectedSelling[passcode] !== undefined) {
+                selectedSelling[passcode] = val;
+                updateSellingTotal();
+              }
+            });
+          });
+        }
+      }
+
+      sortSelect.addEventListener("change", update);
+      orderBtn.addEventListener("click", () => {
+        orderBtn.textContent = orderBtn.textContent === "Ascendente" ? "Descendente" : "Ascendente";
+        update();
+      });
+      searchInput.addEventListener("input", update);
+      update();
     }
 
     function sortCards(cards, key, ascending = true) {
@@ -182,22 +213,15 @@
     async function fetchCardDetails(passcode) {
       if (!passcode) return null;
       const code = passcode.replace(/^0+/, "");
-
-      async function fetchWithLang(lang) {
-        try {
-          const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${code}&language=${lang}`);
-          if (!res.ok) return null;
-          const data = await res.json();
-          if (data.error || !data.data?.length) return null;
-          return data.data[0];
-        } catch {
-          return null;
-        }
+      try {
+        const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${code}&language=pt`);
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (data.error || !data.data?.length) return null;
+        return data.data[0];
+      } catch {
+        return null;
       }
-
-      let details = await fetchWithLang("pt");
-      if (!details) details = await fetchWithLang("en");
-      return details;
     }
 
     async function showCardModal(card) {
@@ -207,7 +231,6 @@
       modalContent.innerHTML = "<p>Carregando...</p>";
 
       const details = await fetchCardDetails(card.passcode);
-
       const imageUrl = details?.card_images?.[0]?.image_url || card.customImage || `https://images.ygoprodeck.com/images/cards/${card.passcode?.replace(/^0+/, "")}.jpg`;
 
       if (details) {
@@ -219,137 +242,17 @@
           <p><strong>Ataque:</strong> ${details.atk ?? "N/A"}</p>
           <p><strong>Defesa:</strong> ${details.def ?? "N/A"}</p>
           <p><strong>Descrição:</strong> ${details.desc}</p>
-          <a href="https://ygoprodeck.com/card/?search=${details.id}" target="_blank" class="text-blue-600 underline">Mais informações</a>
         `;
       } else {
-        modalContent.innerHTML = `
-          <h2 class="text-xl font-bold mb-2">${card.name}</h2>
-          <img src="${imageUrl}" alt="${card.name}" class="w-40 h-56 object-contain mb-4 rounded">
-          <p>Informações detalhadas não encontradas.</p>
-        `;
+        modalContent.innerHTML = `<h2 class="text-xl font-bold mb-2">${card.name}</h2><p>Informações detalhadas não encontradas.</p>`;
       }
     }
 
-    // ---------- Rendering ----------
-    function renderSellingSection({cards, listEl, searchInput, sortSelect, orderBtn}) {
-      function update() {
-        const search = searchInput.value.toLowerCase();
-        const sorted = sortCards(cards, sortSelect.value, orderBtn.textContent === "Ascendente");
-        listEl.innerHTML = "";
-
-        let hasResults = false;
-        sorted.forEach((card, index) => {
-          const values = Object.values(card).join(" ").toLowerCase();
-          if (values.includes(search)) {
-            const el = createSellingCardElement(card, index);
-            if (el) {
-              listEl.appendChild(el);
-              hasResults = true;
-            }
-          }
-        });
-
-        if (!hasResults) {
-          listEl.innerHTML = `<p class="text-gray-500 italic text-center">Ops! Nada para ver aqui...</p>`;
-        }
-
-        attachSelectionHandlers();
-      }
-
-      sortSelect.addEventListener("change", update);
-      orderBtn.addEventListener("click", () => {
-        orderBtn.textContent = orderBtn.textContent === "Ascendente" ? "Descendente" : "Ascendente";
-        update();
-      });
-      searchInput.addEventListener("input", update);
-      update();
-    }
-
-    function renderWantedSection({cards, listEl, searchInput, sortSelect, orderBtn}) {
-      function update() {
-        const search = searchInput.value.toLowerCase();
-        const sorted = sortCards(cards, sortSelect.value, orderBtn.textContent === "Ascendente");
-        listEl.innerHTML = "";
-
-        let hasResults = false;
-        sorted.forEach(card => {
-          const values = Object.values(card).join(" ").toLowerCase();
-          if (values.includes(search)) {
-            const el = createWantedCardElement(card);
-            if (el) {
-              listEl.appendChild(el);
-              hasResults = true;
-            }
-          }
-        });
-
-        if (!hasResults) {
-          listEl.innerHTML = `<p class="text-gray-500 italic text-center">Ops! Nada para ver aqui...</p>`;
-        }
-      }
-
-      sortSelect.addEventListener("change", update);
-      orderBtn.addEventListener("click", () => {
-        orderBtn.textContent = orderBtn.textContent === "Ascendente" ? "Descendente" : "Ascendente";
-        update();
-      });
-      searchInput.addEventListener("input", update);
-      update();
-    }
-
-    // ---------- Selection System ----------
-    function attachSelectionHandlers() {
-      const checkboxes = document.querySelectorAll(".select-card");
-      const selectAll = document.getElementById("select-all-selling");
-      const totalEl = document.getElementById("total-price");
-
-      function calculateTotal() {
-        let total = 0;
-        checkboxes.forEach(cb => {
-          if (cb.checked) {
-            const index = cb.dataset.index;
-            const card = sellingCards[index];
-            const qtyInput = document.getElementById(`qty-${index}`);
-            const qty = qtyInput ? parseInt(qtyInput.value) || 1 : 1;
-            const price = parseFloat(card.price) || 0;
-            total += price * qty;
-          }
-        });
-        totalEl.textContent = total.toFixed(2).replace(".", ",");
-      }
-
-      checkboxes.forEach(cb => {
-        cb.addEventListener("change", calculateTotal);
-        const index = cb.dataset.index;
-        const qtyInput = document.getElementById(`qty-${index}`);
-        if (qtyInput) qtyInput.addEventListener("input", calculateTotal);
-      });
-
-      selectAll.addEventListener("change", () => {
-        checkboxes.forEach(cb => {
-          cb.checked = selectAll.checked;
-          const index = cb.dataset.index;
-          const qtyInput = document.getElementById(`qty-${index}`);
-          if (qtyInput && selectAll.checked) {
-            qtyInput.value = qtyInput.max; // set to max
-          }
-        });
-        calculateTotal();
-      });
-
-      calculateTotal();
-    }
-
-    // ---------- Modal Close ----------
     const modal = document.getElementById("card-modal");
-    document.getElementById("modal-close").addEventListener("click", () => {
-      modal.classList.add("hidden");
-      document.getElementById("modal-content").innerHTML = "";
-    });
-    modal.addEventListener("click", e => { if(e.target === modal) modal.classList.add("hidden"); });
-    document.addEventListener("keydown", e => { if(e.key === "Escape") modal.classList.add("hidden"); });
+    document.getElementById("modal-close").addEventListener("click", () => modal.classList.add("hidden"));
+    modal.addEventListener("click", e => { if (e.target === modal) modal.classList.add("hidden"); });
+    document.addEventListener("keydown", e => { if (e.key === "Escape") modal.classList.add("hidden"); });
 
-    // ---------- Init ----------
     (async function init() {
       const rows = await loadCsv(csvUrl);
       if (!rows.length) return;
@@ -397,15 +300,41 @@
         });
       });
 
-      renderSellingSection({
+      renderSection({
         cards: sellingCards,
         listEl: document.getElementById("selling-list"),
         searchInput: document.getElementById("selling-search"),
         sortSelect: document.getElementById("selling-sort"),
-        orderBtn: document.getElementById("selling-order")
+        orderBtn: document.getElementById("selling-order"),
+        withSelection: true
       });
 
-      renderWantedSection({
+      renderSection({
         cards: wantedCards,
         listEl: document.getElementById("wanted-list"),
         searchInput: document.getElementById("wanted-search"),
+        sortSelect: document.getElementById("wanted-sort"),
+        orderBtn: document.getElementById("wanted-order")
+      });
+
+      document.getElementById("select-all-selling").addEventListener("click", () => {
+        selectedSelling = {};
+        document.querySelectorAll("#selling-list .card-checkbox").forEach(cb => {
+          if (!cb.disabled) {
+            cb.checked = true;
+            const qtyInput = document.querySelector(`.quantity-input[data-passcode='${cb.dataset.passcode}']`);
+            selectedSelling[cb.dataset.passcode] = parseInt(qtyInput.max) || 1;
+            qtyInput.value = qtyInput.max;
+          }
+        });
+        updateSellingTotal();
+      });
+
+      document.getElementById("copy-selling").addEventListener("click", () => {
+        const text = generateSellingListText();
+        navigator.clipboard.writeText(text).then(() => alert("Lista copiada!"));
+      });
+    })();
+    </script>
+  </body>
+</html>
