@@ -301,19 +301,9 @@
     detailsEl.innerHTML = `<p>Informações detalhadas não encontradas.</p>`;
     return;
   }
-
-const banText = details.ban_tcg === "forbidden" ? "PROIBIDO"
-  : details.ban_tcg === "limited" ? "LIMITADO"
-  : details.ban_tcg === "semi-limited" ? "SEMI-LIMITADO"
-  : "ILIMITADO";
-
-const banColor = details.ban_tcg === "forbidden" ? "red"
-  : details.ban_tcg === "limited" ? "orange"
-  : details.ban_tcg === "semi-limited" ? "gold"
-  : "green";
       
   detailsEl.innerHTML = `
-    <p style="text-align: center; font-weight: bold; font-size: 1.2em; color: ${banColor}; text-transform: uppercase;">${banText}</p>
+    <p style="text-align: center; font-weight: bold; font-size: 1.2em; text-transform: uppercase;">${details.ban_tcg ?? UNLIMITED}</p>
     <p><strong>Descrição/Efeito:</strong> ${details.desc}</p>
     <p><strong>Tipo:</strong> ${details.attribute ? details.attribute + ' ' : ''} ${details.race ? details.race + ' ' : ''}${details.type}</p>
     <p><strong>Nível/Classe/Link:</strong> ${details.level ?? details.rank ?? details.linkval ?? "N/A"}</p>
