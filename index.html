@@ -13,7 +13,7 @@
 </head>
 <body class="bg-gray-100 min-h-screen p-6">
   <h1 class="text-3xl font-bold mb-6 text-center">Lista de Trocas do Tony</h1>
-  <p class="text-center text-gray-600 mb-6">Cards indisponíveis por problemas tecnicos, estou trabalhando para resolver isso o mais rápido possível.</p>
+  <p class="text-center text-gray-600 mb-6">Minha página para venda e troca de cards de Yu-Gi-Oh! Aqui você encontra os que tenho disponíveis para troca e também os que estou procurando.</p>
 
   <div id="warnings" class="max-w-3xl mx-auto mb-6 text-red-600 font-semibold"></div>
   <div class="grid grid-cols-2 gap-8">
@@ -33,7 +33,7 @@
       <div id="selling-list" class="grid gap-4 h-[70vh] overflow-y-auto mb-4"></div>
       <div class="flex items-center gap-4">
         <p id="selling-total" class="font-semibold text-lg">Total: R$ 0,00</p>
-        <button id="copy-selling" class="ml-auto bg-green-500 text-white px-3 py-1 rounded text-sm">Copiar Selecão</button>
+        <button id="copy-selling" class="ml-auto bg-green-500 text-white px-3 py-1 rounded text-sm">Copiar Seleção</button>
       </div>
     </div>
 
@@ -266,6 +266,7 @@
       const modalContent = document.getElementById("modal-content");
       modal.classList.remove("hidden");
       modalContent.innerHTML = "<p>Carregando...</p>";
+
       const details = await fetchCardDetails(card.passcode);
       let imageUrl = "";
       if (card.customImage) {
@@ -273,6 +274,9 @@
       } else {
         imageUrl = details?.card_images?.[0]?.image_url || (card.passcode ? `https://images.ygoprodeck.com/images/cards/${card.passcode.replace(/^0+/, "")}.jpg` : '');
       }
+
+      const moreInfoUrl = card.passcode ? `https://ygoprodeck.com/card/?search=${card.passcode.replace(/^0+/, "")}` : "#";
+
       if (details) {
         modalContent.innerHTML = `
           <h2 class="text-xl font-bold mb-2">${details.name}</h2>
@@ -282,9 +286,14 @@
           <p><strong>Ataque:</strong> ${details.atk ?? "N/A"}</p>
           <p><strong>Defesa:</strong> ${details.def ?? "N/A"}</p>
           <p><strong>Descrição:</strong> ${details.desc}</p>
+          <a href="${moreInfoUrl}" target="_blank" class="text-blue-600 underline mt-2 block">Mais Informações</a>
         `;
       } else {
-        modalContent.innerHTML = `<h2 class="text-xl font-bold mb-2">${card.name}</h2><p>Informações detalhadas não encontradas.</p>`;
+        modalContent.innerHTML = `
+          <h2 class="text-xl font-bold mb-2">${card.name}</h2>
+          <p>Informações detalhadas não encontradas.</p>
+          <a href="${moreInfoUrl}" target="_blank" class="text-blue-600 underline mt-2 block">Mais Informações</a>
+        `;
       }
     }
 
@@ -296,12 +305,8 @@
     (async function init() {
       const rows = await loadCsv(csvUrl);
       if (!rows.length) return;
-      const normalizedRows = rows.map(r => {
-        const obj = {};
-        for (const key in r) obj[key.trim().toLowerCase().replace(/\s+/g, "")] = r[key];
-        return obj;
-      });
-      sellingCards = normalizedRows.map(r => ({
+
+      sellingCards = rows.map(r => ({
         name: r["sellingname"] || "",
         setid: r["sellingsetid"] || "",
         passcode: r["sellingpasscode"] || "",
@@ -309,7 +314,8 @@
         customImage: r["sellingimageurl"] || "",
         quantity: r["sellingquantity"] || ""
       })).filter(c => c.name);
-      wantedCards = normalizedRows.map(r => ({
+
+      wantedCards = rows.map(r => ({
         name: r["wantedname"] || "",
         setid: r["wantedsetid"] || "",
         passcode: r["wantedpasscode"] || "",
@@ -319,38 +325,39 @@
       })).filter(c => c.name);
 
       // ---------- Warnings ----------
-    function checkWarnings() {
-      const warnings = [];
-      const sellingMap = new Map();
-      const wantedMap = new Map();
+      function checkWarnings() {
+        const warnings = [];
+        const sellingMap = new Map();
+        const wantedMap = new Map();
 
-      // Check duplicates in selling
-      sellingCards.forEach(c => {
-        const key = `${c.name}|${c.setid}`;
-        if (sellingMap.has(key)) warnings.push(`Duplicado em "Tenho": ${c.name} (${c.setid})`);
-        sellingMap.set(key, true);
-      });
+        // Check duplicates in selling
+        sellingCards.forEach(c => {
+          const key = `${c.passcode}|${c.setid}`;
+          if (sellingMap.has(key)) warnings.push(`Duplicado em "Tenho": ${c.name} (${c.setid})`);
+          sellingMap.set(key, true);
+        });
 
-      // Check duplicates in wanted
-      wantedCards.forEach(c => {
-        const key = `${c.name}|${c.setid}`;
-        if (wantedMap.has(key)) warnings.push(`Duplicado em "Quero": ${c.name} (${c.setid})`);
-        wantedMap.set(key, true);
-      });
+        // Check duplicates in wanted
+        wantedCards.forEach(c => {
+          const key = `${c.passcode}`;
+          if (wantedMap.has(key)) warnings.push(`Duplicado em "Quero": ${c.name}`);
+          wantedMap.set(key, true);
+        });
 
-      // Check same name in both lists
-      const sellingNames = new Set(sellingCards.map(c => c.name));
-      const wantedNames = new Set(wantedCards.map(c => c.name));
-      sellingNames.forEach(name => {
-        if (wantedNames.has(name)) warnings.push(`"${name}" aparece em "Tenho" e "Quero"`);
-      });
+        // Check same passcode + Set-ID in both lists
+        const sellingKeys = new Set(sellingCards.map(c => `${c.passcode}`));
+        wantedCards.forEach(c => {
+          const key = `${c.passcode}`;
+          if (sellingKeys.has(key)) warnings.push(`${c.name} aparece em "Tenho" e "Quero"`);
+        });
 
-      document.getElementById("warnings").innerHTML = warnings.length
-        ? warnings.map(w => `<p>⚠️ ${w}</p>`).join("")
-        : "";
-    }
+        document.getElementById("warnings").innerHTML = warnings.length
+          ? warnings.map(w => `<p>⚠️ ${w}</p>`).join("")
+          : "";
+      }
 
-    // ---------- Init ----------const options = [
+      // ---------- Init ----------
+      const options = [
         {value: "random", label: "Aleatório"},
         {value: "name", label: "Nome"},
         {value: "setid", label: "Número"},
@@ -368,6 +375,7 @@
           select.appendChild(opt);
         });
       });
+
       renderSection({
         cards: sellingCards,
         listEl: document.getElementById("selling-list"),
@@ -376,6 +384,7 @@
         orderBtn: document.getElementById("selling-order"),
         withSelection: true
       });
+
       renderSection({
         cards: wantedCards,
         listEl: document.getElementById("wanted-list"),
@@ -383,33 +392,37 @@
         sortSelect: document.getElementById("wanted-sort"),
         orderBtn: document.getElementById("wanted-order")
       });
-            // Run warnings
+
+      // Run warnings
       checkWarnings();
-document.getElementById("select-all-selling").checked = false;
+
+      document.getElementById("select-all-selling").checked = false;
       document.getElementById("select-all-selling").addEventListener("change", e => {
         const checkAll = e.target.checked;
         selectedSelling = {};
+  
         document.querySelectorAll("#selling-list .card-checkbox").forEach(cb => {
           cb.checked = checkAll;
           const idx = cb.dataset.index;
           const qtyInput = document.querySelector(`.quantity-input[data-index='${idx}']`);
           if (checkAll && qtyInput) {
-            qtyInput.value = qtyInput.max || qtyInput.value || 1;
-            selectedSelling[idx] = parseInt(qtyInput.value, 10) || 1;
+            // Set to the maximum quantity
+            qtyInput.value = qtyInput.max || 1;
+            selectedSelling[idx] = parseInt(qtyInput.value, 10);
           }
         });
-        updateSellingTotal();
-      });
+
+  updateSellingTotal();
+});
+
       document.getElementById("copy-selling").addEventListener("click", () => {
         const text = generateSellingListText();
-        if (!text) return alert('Nenhuma carta selecionada.');
-        navigator.clipboard.writeText(text).then(() => alert("Lista copiada!"));
+        navigator.clipboard.writeText(text).then(() => {
+          alert("Lista copiada!");
+        });
       });
+
     })();
   </script>
-
-  <div class="text-center text-gray-600 mt-12 mb-6">
-    Decidiu e copiou sua lista? Fale comigo no <a href="https://wa/5588997123073" target="_blank" class="text-green-600 underline hover:text-green-800">Whatsapp</a>.
-  </div>
 </body>
 </html>
