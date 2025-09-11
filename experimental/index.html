@@ -268,33 +268,39 @@
       modalContent.innerHTML = "<p>Carregando...</p>";
 
       const details = await fetchCardDetails(card.passcode);
-      let imageUrl = "";
-      if (card.customImage) {
-        imageUrl = card.customImage;
-      } else {
-        imageUrl = details?.card_images?.[0]?.image_url || (card.passcode ? `https://images.ygoprodeck.com/images/cards/${card.passcode.replace(/^0+/, "")}.jpg` : '');
-      }
 
-      const moreInfoUrl = card.passcode ? `https://ygoprodeck.com/card/?search=${card.passcode.replace(/^0+/, "")}` : "#";
+      // Always set the image
+      const imageUrl = card.customImage
+        ? card.customImage
+        : `https://images.ygoprodeck.com/images/cards/${card.passcode.replace(/^0+/, "")}.jpg`;
 
-      if (details) {
-        modalContent.innerHTML = `
-          <h2 class="text-xl font-bold mb-2">${details.name}</h2>
-          <img src="${imageUrl}" alt="${details.name}" class="w-40 h-56 object-contain mb-4 rounded">
-          <p><strong>Tipo:</strong> ${details.type}</p>
-          <p><strong>Level/Rank:</strong> ${details.level || details.rank || "N/A"}</p>
-          <p><strong>Ataque:</strong> ${details.atk ?? "N/A"}</p>
-          <p><strong>Defesa:</strong> ${details.def ?? "N/A"}</p>
-          <p><strong>Descrição:</strong> ${details.desc}</p>
-          <a href="${moreInfoUrl}" target="_blank" class="text-blue-600 underline mt-2 block">Mais Informações</a>
-        `;
-      } else {
-        modalContent.innerHTML = `
-          <h2 class="text-xl font-bold mb-2">${card.name}</h2>
-          <p>Informações detalhadas não encontradas.</p>
-          <a href="${moreInfoUrl}" target="_blank" class="text-blue-600 underline mt-2 block">Mais Informações</a>
-        `;
-      }
+      const moreInfoUrl = card.passcode
+        ? `https://ygoprodeck.com/card/?search=${card.passcode.replace(/^0+/, "")}`
+        : "#";
+
+      // Create a two-column layout
+      modalContent.innerHTML = `
+        <div class="flex gap-6">
+          <div class="flex-shrink-0">
+            <img src="${imageUrl}" alt="${card.name}" class="w-56 h-80 object-contain rounded mb-4">
+          </div>
+          <div class="flex-1">
+            <h2 class="text-xl font-bold mb-2">${card.name}</h2>
+            ${
+              details
+                ? `
+                  <p><strong>Tipo:</strong> ${details.type}</p>
+                  <p><strong>Nível/Ranque:</strong> ${details.level || details.rank || "N/A"}</p>
+                  <p><strong>Ataque:</strong> ${details.atk ?? "N/A"}</p>
+                  <p><strong>Defesa:</strong> ${details.def ?? "N/A"}</p>
+                  <p><strong>Descrição:</strong> ${details.desc}</p>
+                `
+                : `<p>Informações detalhadas não encontradas.</p>`
+            }
+            <a href="${moreInfoUrl}" target="_blank" class="text-blue-600 underline mt-2 inline-block">Mais Informações</a>
+          </div>
+        </div>
+      `;
     }
 
     const modal = document.getElementById("card-modal");
