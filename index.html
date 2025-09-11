@@ -51,18 +51,20 @@
   </div>
 
   <!-- Card Details Modal -->
-<div id="card-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-  <div id="modal-content" class="bg-white rounded-xl shadow-lg w-[90vw] max-w-[1200px] aspect-[59/43] flex overflow-hidden relative">
+<div id="card-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50 p-4">
+  <div id="modal-content" class="bg-white rounded-xl shadow-lg w-full max-w-[926px] aspect-[59/43] flex overflow-hidden relative">
     <!-- Close Button -->
     <button id="modal-close" class="absolute top-3 right-3 text-red-600 text-2xl font-bold hover:text-red-800">&times;</button>
+
     <!-- Left: Card Image -->
-    <div class="flex-shrink-0 flex items-center justify-center bg-gray-100 p-4">
-      <img id="modal-card-image" src="" alt="" class="object-contain h-full" style="aspect-ratio:59/86;">
+    <div class="w-[472px] flex-none flex items-center justify-center bg-gray-100 p-4">
+      <img id="modal-card-image" src="" alt="" class="object-contain h-full rounded">
     </div>
+
     <!-- Right: Info -->
-    <div class="flex-1 p-6 overflow-y-auto" id="modal-card-info">
-      <h2 class="text-2xl font-bold mb-4" id="modal-card-name"></h2>
-      <div id="modal-card-details">
+    <div class="flex-1 p-4 overflow-y-auto flex flex-col" id="modal-card-info">
+      <h2 class="text-2xl font-bold mb-4" style="text-align: center" id="modal-card-name"></h2>
+      <div id="modal-card-details" class="flex-1">
         <p>Carregando...</p>
       </div>
       <a href="#" target="_blank" class="text-blue-600 underline mt-4 inline-block" id="modal-card-link">Mais Informações</a>
@@ -128,7 +130,7 @@
 
       let outOfStockBadge = "";
       if (isOutOfStock) {
-        outOfStockBadge = `<p class="text-sm text-red-500 font-semibold">Esgotado</p>`;
+        outOfStockBadge = `<p class="text-sm text-red-500 font-semibold">ESGOTADO</p>`;
       }
 
       div.innerHTML = `
@@ -280,30 +282,43 @@
   const detailsEl = document.getElementById("modal-card-details");
   const linkEl = document.getElementById("modal-card-link");
 
+  // Show modal
   modal.classList.remove("hidden");
 
-  // Set basic info immediately
-  imgEl.src = card.customImage ? card.customImage : `https://images.ygoprodeck.com/images/cards/${card.passcode.replace(/^0+/, "")}.jpg`;
+  // Prepare image and link
+  const cardId = card.passcode?.replace(/^0+/, "") || "";
+  imgEl.src = card.customImage || `https://images.ygoprodeck.com/images/cards/${cardId}.jpg`;
   imgEl.alt = card.name;
   nameEl.textContent = card.name;
+  linkEl.href = cardId ? `https://ygoprodeck.com/card/?search=${cardId}` : "#";
+
+  // Show loading
   detailsEl.innerHTML = "<p>Carregando...</p>";
 
-  const moreInfoUrl = card.passcode ? `https://ygoprodeck.com/card/?search=${card.passcode.replace(/^0+/, "")}` : "#";
-  linkEl.href = moreInfoUrl;
-
+  // Fetch and display details
   const details = await fetchCardDetails(card.passcode);
-
-  if (details) {
-    detailsEl.innerHTML = `
-      <p><strong>Tipo:</strong> ${details.type}</p>
-      <p><strong>Level/Rank:</strong> ${details.level || details.rank || "N/A"}</p>
-      <p><strong>Ataque:</strong> ${details.atk ?? "N/A"}</p>
-      <p><strong>Defesa:</strong> ${details.def ?? "N/A"}</p>
-      <p><strong>Descrição:</strong> ${details.desc}</p>
-    `;
-  } else {
+  if (!details) {
     detailsEl.innerHTML = `<p>Informações detalhadas não encontradas.</p>`;
+    return;
   }
+
+const banStatus = details.banlist_info?.ban_tcg || "Unlimited";
+
+const bantext = banStatus === "Forbidden" ? 
+  `<p style='text-align: center; font-weight: bold; font-size: 1.2em; text-transform: uppercase; color: red;'>PROIBIDO</p>` :
+  banStatus === "Limited" ? 
+  `<p style='text-align: center; font-weight: bold; font-size: 1.2em; text-transform: uppercase; color: orange;'>LIMITADO</p>` :
+  banStatus === "Semi-Limited" ? 
+  `<p style='text-align: center; font-weight: bold; font-size: 1.2em; text-transform: uppercase; color: gold;'>SEMI-LIMITADO</p>` :
+  `<p style='text-align: center; font-weight: bold; font-size: 1.2em; text-transform: uppercase; color: green;'>ILIMITADO</p>`;
+
+  detailsEl.innerHTML = `
+    ${bantext}
+    <p><strong>Tipo:</strong> ${details.attribute ? details.attribute + ' ' : ''} ${details.race ? details.race + ' ' : ''}${details.type}</p>
+    <p><strong>Nível/Classe/Link:</strong> ${details.level ?? details.rank ?? details.linkval ?? "N/A"} <strong>Escala Pêndulo:</strong> ${details.scale ?? "N/A"}</p>
+    <p><strong>ATK/</strong>${details.ATK ?? 'N/A'} <strong>DEF/</strong>${details.DEF ?? 'N/A'}</p>
+    <p><strong>Descrição/Efeito:</strong> ${details.desc}</p>
+  `;
 }
     
     const modal = document.getElementById("card-modal");
