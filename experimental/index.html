@@ -262,46 +262,46 @@
     }
 
     async function showCardModal(card) {
-      const modal = document.getElementById("card-modal");
-      const modalContent = document.getElementById("modal-content");
-      modal.classList.remove("hidden");
-      modalContent.innerHTML = "<p>Carregando...</p>";
+  const modal = document.getElementById("card-modal");
+  const modalContent = document.getElementById("modal-content");
+  modal.classList.remove("hidden");
+  modalContent.innerHTML = "<p>Carregando...</p>";
 
-      const details = await fetchCardDetails(card.passcode);
+  const details = await fetchCardDetails(card.passcode);
 
-      // Always set the image
-      const imageUrl = card.customImage
-        ? card.customImage
-        : `https://images.ygoprodeck.com/images/cards/${card.passcode.replace(/^0+/, "")}.jpg`;
+  // Always show image
+  const imageUrl = card.customImage
+    ? card.customImage
+    : `https://images.ygoprodeck.com/images/cards/${card.passcode.replace(/^0+/, "")}.jpg`;
 
-      const moreInfoUrl = card.passcode
-        ? `https://ygoprodeck.com/card/?search=${card.passcode.replace(/^0+/, "")}`
-        : "#";
+  const moreInfoUrl = card.passcode
+    ? `https://ygoprodeck.com/card/?search=${card.passcode.replace(/^0+/, "")}`
+    : "#";
 
-      // Create a two-column layout
-      modalContent.innerHTML = `
-        <div class="flex gap-6">
-          <div class="flex-shrink-0">
-            <img src="${imageUrl}" alt="${card.name}" class="w-59 h-86 object-contain rounded mb-4">
-          </div>
-          <div class="flex-1">
-            <h2 class="text-xl font-bold mb-2">${card.name}</h2>
-            ${
-              details
-                ? `
-                  <p><strong>Tipo:</strong> ${details.type}</p>
-                  <p><strong>Nível/Ranque:</strong> ${details.level || details.rank || "N/A"}</p>
-                  <p><strong>Ataque:</strong> ${details.atk ?? "N/A"}</p>
-                  <p><strong>Defesa:</strong> ${details.def ?? "N/A"}</p>
-                  <p><strong>Descrição:</strong> ${details.desc}</p>
-                `
-                : `<p>Informações detalhadas não encontradas.</p>`
-            }
-            <a href="${moreInfoUrl}" target="_blank" class="text-blue-600 underline mt-2 inline-block">Mais Informações</a>
-          </div>
-        </div>
-      `;
-    }
+  // Two-column landscape layout with scrollable text
+  modalContent.innerHTML = `
+    <div class="flex gap-6 h-[80vh] max-h-[80vh]">
+      <div class="flex-shrink-0 flex items-center justify-center">
+        <img src="${imageUrl}" alt="${card.name}" class="rounded" style="height:100%; aspect-ratio:59/86; object-contain;">
+      </div>
+      <div class="flex-1 overflow-y-auto p-2">
+        <h2 class="text-2xl font-bold mb-2">${card.name}</h2>
+        ${
+          details
+            ? `
+              <p><strong>Tipo:</strong> ${details.type}</p>
+              <p><strong>Level/Rank:</strong> ${details.level || details.rank || "N/A"}</p>
+              <p><strong>Ataque:</strong> ${details.atk ?? "N/A"}</p>
+              <p><strong>Defesa:</strong> ${details.def ?? "N/A"}</p>
+              <p><strong>Descrição:</strong> ${details.desc}</p>
+            `
+            : `<p>Informações detalhadas não encontradas.</p>`
+        }
+        <a href="${moreInfoUrl}" target="_blank" class="text-blue-600 underline mt-2 inline-block">Mais Informações</a>
+      </div>
+    </div>
+  `;
+}
 
     const modal = document.getElementById("card-modal");
     document.getElementById("modal-close").addEventListener("click", () => modal.classList.add("hidden"));
