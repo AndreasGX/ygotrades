@@ -266,6 +266,7 @@
       const modalContent = document.getElementById("modal-content");
       modal.classList.remove("hidden");
       modalContent.innerHTML = "<p>Carregando...</p>";
+
       const details = await fetchCardDetails(card.passcode);
       let imageUrl = "";
       if (card.customImage) {
@@ -273,6 +274,9 @@
       } else {
         imageUrl = details?.card_images?.[0]?.image_url || (card.passcode ? `https://images.ygoprodeck.com/images/cards/${card.passcode.replace(/^0+/, "")}.jpg` : '');
       }
+
+      const moreInfoUrl = card.passcode ? `https://ygoprodeck.com/card/?search=${card.passcode.replace(/^0+/, "")}` : "#";
+
       if (details) {
         modalContent.innerHTML = `
           <h2 class="text-xl font-bold mb-2">${details.name}</h2>
@@ -282,9 +286,14 @@
           <p><strong>Ataque:</strong> ${details.atk ?? "N/A"}</p>
           <p><strong>Defesa:</strong> ${details.def ?? "N/A"}</p>
           <p><strong>Descrição:</strong> ${details.desc}</p>
+          <a href="${moreInfoUrl}" target="_blank" class="text-blue-600 underline mt-2 block">Mais Informações</a>
         `;
       } else {
-        modalContent.innerHTML = `<h2 class="text-xl font-bold mb-2">${card.name}</h2><p>Informações detalhadas não encontradas.</p>`;
+        modalContent.innerHTML = `
+          <h2 class="text-xl font-bold mb-2">${card.name}</h2>
+          <p>Informações detalhadas não encontradas.</p>
+          <a href="${moreInfoUrl}" target="_blank" class="text-blue-600 underline mt-2 block">Mais Informações</a>
+        `;
       }
     }
 
