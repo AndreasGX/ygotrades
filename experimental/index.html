@@ -52,14 +52,14 @@
 
   <!-- Card Details Modal -->
   <div id="card-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-  <div id="modal-content" class="bg-white rounded-xl shadow-lg w-[70vw] max-w-[900px] flex overflow-hidden relative" style="aspect-ratio:59/43;">
-    
+  <div id="modal-content" class="bg-white rounded-xl shadow-lg w-[70vw] max-w-[900px] flex overflow-hidden relative" style="height:70vh;">
+
     <!-- Close Button -->
     <button id="modal-close" class="absolute top-3 right-3 text-red-600 text-2xl font-bold hover:text-red-800">&times;</button>
 
     <!-- Left: Card Image -->
-    <div class="p-4 flex items-center justify-center" style="width: calc(100% * (59 / 86)); min-width: 120px;">
-      <img id="modal-card-image" src="" alt="" class="object-contain h-full">
+    <div class="flex-shrink-0 flex items-center justify-start">
+      <img id="modal-card-image" src="" alt="" class="h-full object-contain" style="aspect-ratio:59/86;">
     </div>
 
     <!-- Right: Info -->
