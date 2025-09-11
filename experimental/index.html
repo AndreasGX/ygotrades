@@ -52,7 +52,7 @@
 
   <!-- Card Details Modal -->
 <div id="card-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50 p-4">
-  <div id="modal-content" class="bg-white rounded-xl shadow-lg w-full max-w-[976px] aspect-[59/43] flex overflow-hidden relative">
+  <div id="modal-content" class="bg-white rounded-xl shadow-lg w-full max-w-[944px] aspect-[59/43] flex overflow-hidden relative">
     <!-- Close Button -->
     <button id="modal-close" class="absolute top-3 right-3 text-red-600 text-2xl font-bold hover:text-red-800">&times;</button>
 
@@ -301,9 +301,9 @@
     detailsEl.innerHTML = `<p>Informações detalhadas não encontradas.</p>`;
     return;
   }
-      
+
   detailsEl.innerHTML = `
-    <p style="text-align: center;"><strong>${details.ban_tcg ?? 'Unlimited'}</strong></p>
+    <p style="text-align: center;"><strong>${details.ban_tcg ?? 'Ilimitado'}</strong></p>
     <p><strong>Descrição/Efeito:</strong> ${details.desc}</p>
     <p><strong>Tipo:</strong> ${details.attribute ? details.attribute + ' ' : ''} ${details.race ? details.race + ' ' : ''}${details.type}</p>
     <p><strong>Nível/Classe/Link:</strong> ${details.level ?? details.rank ?? details.linkval ?? "N/A"}</p>
