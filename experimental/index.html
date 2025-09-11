@@ -52,7 +52,7 @@
 
   <!-- Card Details Modal -->
 <div id="card-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50 p-4">
-  <div id="modal-content" class="bg-white rounded-xl shadow-lg w-full max-w-[944px] aspect-[59/43] flex overflow-hidden relative">
+  <div id="modal-content" class="bg-white rounded-xl shadow-lg w-full max-w-[936px] aspect-[59/43] flex overflow-hidden relative">
     <!-- Close Button -->
     <button id="modal-close" class="absolute top-3 right-3 text-red-600 text-2xl font-bold hover:text-red-800">&times;</button>
 
@@ -302,14 +302,14 @@
     return;
   }
 
-const banText = details.ban_tcg === "Forbidden" ? "PROIBIDO"
-  : details.ban_tcg === "Limited" ? "LIMITADO"
-  : details.ban_tcg === "Semi-Limited" ? "SEMI-LIMITADO"
+const banText = details.ban_tcg === "forbidden" ? "PROIBIDO"
+  : details.ban_tcg === "limited" ? "LIMITADO"
+  : details.ban_tcg === "semi-limited" ? "SEMI-LIMITADO"
   : "ILIMITADO";
 
-const banColor = details.ban_tcg === "Forbidden" ? "red"
-  : details.ban_tcg === "Limited" ? "orange"
-  : details.ban_tcg === "Semi-Limited" ? "gold" // slightly better than pure yellow
+const banColor = details.ban_tcg === "forbidden" ? "red"
+  : details.ban_tcg === "limited" ? "orange"
+  : details.ban_tcg === "semi-limited" ? "gold"
   : "green";
       
   detailsEl.innerHTML = `
