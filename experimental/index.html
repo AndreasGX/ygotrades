@@ -391,16 +391,20 @@
       document.getElementById("select-all-selling").addEventListener("change", e => {
         const checkAll = e.target.checked;
         selectedSelling = {};
+  
         document.querySelectorAll("#selling-list .card-checkbox").forEach(cb => {
           cb.checked = checkAll;
           const idx = cb.dataset.index;
           const qtyInput = document.querySelector(`.quantity-input[data-index='${idx}']`);
-          if (checkAll) {
-            selectedSelling[idx] = parseInt(qtyInput?.value || 1, 10) || 1;
+          if (checkAll && qtyInput) {
+            // Set to the maximum quantity
+            qtyInput.value = qtyInput.max || 1;
+            selectedSelling[idx] = parseInt(qtyInput.value, 10);
           }
         });
-        updateSellingTotal();
-      });
+
+  updateSellingTotal();
+});
 
       document.getElementById("copy-selling").addEventListener("click", () => {
         const text = generateSellingListText();
