@@ -52,7 +52,7 @@
 
   <!-- Card Details Modal -->
 <div id="card-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-  <div id="modal-content" class="bg-white rounded-xl shadow-lg w-[90vw] max-w-[900px] aspect-[16/9] flex overflow-hidden relative">
+  <div id="modal-content" class="bg-white rounded-xl shadow-lg w-[70vw] max-w-[900px] flex overflow-hidden relative" style="aspect-ratio:59/43;">
     <!-- Close Button -->
     <button id="modal-close" class="absolute top-3 right-3 text-red-600 text-2xl font-bold hover:text-red-800">&times;</button>
 
@@ -62,7 +62,7 @@
     </div>
 
     <!-- Right: Info -->
-    <div class="flex-1 p-6 overflow-y-auto" id="modal-card-info">
+    <div class="flex-1 p-6 overflow-y-auto" id="modal-card-info" style="aspect-ratio:59/86;">
       <h2 class="text-2xl font-bold mb-4" id="modal-card-name"></h2>
       <div id="modal-card-details">
         <p>Carregando...</p>
@@ -313,6 +313,7 @@
     document.getElementById("modal-close").addEventListener("click", () => modal.classList.add("hidden"));
     modal.addEventListener("click", e => { if (e.target === modal) modal.classList.add("hidden"); });
     document.addEventListener("keydown", e => { if (e.key === "Escape") modal.classList.add("hidden"); });
+
 
     (async function init() {
       const rows = await loadCsv(csvUrl);
