@@ -307,7 +307,7 @@
     <p><strong>Nível/Ranque/Link:</strong> ${details.level ?? details.rank ?? details.linkval ?? "N/A"}</p>
     <p><strong>Escala Pêndulo:</strong> ${details.pendulum_scale ?? "N/A"}</p>
     <p><strong>Setas:</strong> ${details.linkmarker ?? "N/A"}</p>
-    <p><strong>ATK/${details.ATK} DEF/${details.DEF}</strong></p>
+    <p></strong>ATK/</strong>${details.ATK ?? 'N/A'} </strong>DEF/</strong>${details.DEF ?? 'N/A'}</p>
     <p><strong>Descrição/Efeito:</strong> ${details.desc}</p>
   `;
 }
