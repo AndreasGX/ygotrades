@@ -51,12 +51,24 @@
   </div>
 
   <!-- Card Details Modal -->
-  <div id="card-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-    <div class="bg-white rounded-xl shadow-lg p-6 max-w-lg w-full relative">
-      <button id="modal-close" class="absolute top-2 right-2 text-red-600 text-2xl font-bold hover:text-red-800">&times;</button>
-      <div id="modal-content"></div>
+<div id="card-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+  <div id="modal-content" class="bg-white rounded-xl shadow-lg w-[90vw] max-w-[1200px] aspect-[16/9] flex overflow-hidden relative">
+    <!-- Close Button -->
+    <button id="modal-close" class="absolute top-3 right-3 text-red-600 text-2xl font-bold hover:text-red-800">&times;</button>
+    <!-- Left: Card Image -->
+    <div class="flex-shrink-0 flex items-center justify-center bg-gray-100 p-4">
+      <img id="modal-card-image" src="" alt="" class="object-contain h-full" style="aspect-ratio:59/86;">
+    </div>
+    <!-- Right: Info -->
+    <div class="flex-1 p-6 overflow-y-auto" id="modal-card-info">
+      <h2 class="text-2xl font-bold mb-4" id="modal-card-name"></h2>
+      <div id="modal-card-details">
+        <p>Carregando...</p>
+      </div>
+      <a href="#" target="_blank" class="text-blue-600 underline mt-4 inline-block" id="modal-card-link">Mais Informações</a>
     </div>
   </div>
+</div>
 
   <script>
     const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQpJVCUhWxyH_TM4-83ra9FXLCES8yqIBVQy3ed6OoVZwbSH4LkoVh7gBn6K2iz32cQNftsj1E-UIiK/pub?output=csv";
@@ -263,45 +275,35 @@
 
     async function showCardModal(card) {
   const modal = document.getElementById("card-modal");
-  const modalContent = document.getElementById("modal-content");
+  const imgEl = document.getElementById("modal-card-image");
+  const nameEl = document.getElementById("modal-card-name");
+  const detailsEl = document.getElementById("modal-card-details");
+  const linkEl = document.getElementById("modal-card-link");
+
   modal.classList.remove("hidden");
-  modalContent.innerHTML = "<p>Carregando...</p>";
+
+  // Set basic info immediately
+  imgEl.src = card.customImage ? card.customImage : `https://images.ygoprodeck.com/images/cards/${card.passcode.replace(/^0+/, "")}.jpg`;
+  imgEl.alt = card.name;
+  nameEl.textContent = card.name;
+  detailsEl.innerHTML = "<p>Carregando...</p>";
+
+  const moreInfoUrl = card.passcode ? `https://ygoprodeck.com/card/?search=${card.passcode.replace(/^0+/, "")}` : "#";
+  linkEl.href = moreInfoUrl;
 
   const details = await fetchCardDetails(card.passcode);
 
-  const imageUrl = card.customImage
-    ? card.customImage
-    : `https://images.ygoprodeck.com/images/cards/${card.passcode.replace(/^0+/, "")}.jpg`;
-
-  const moreInfoUrl = card.passcode
-    ? `https://ygoprodeck.com/card/?search=${card.passcode.replace(/^0+/, "")}`
-    : "#";
-
-  modalContent.innerHTML = `
-    <div class="bg-white rounded-xl shadow-lg w-[90vw] max-w-[1200px] aspect-[16/9] flex overflow-hidden">
-      <!-- Left: Card Image -->
-      <div class="flex-shrink-0 flex items-center justify-center bg-gray-100 p-4">
-        <img src="${imageUrl}" alt="${card.name}" class="object-contain h-full" style="aspect-ratio:59/86;">
-      </div>
-
-      <!-- Right: Info -->
-      <div class="flex-1 p-6 overflow-y-auto">
-        <h2 class="text-2xl font-bold mb-4">${card.name}</h2>
-        ${
-          details
-            ? `
-              <p><strong>Tipo:</strong> ${details.type}</p>
-              <p><strong>Level/Rank:</strong> ${details.level || details.rank || "N/A"}</p>
-              <p><strong>Ataque:</strong> ${details.atk ?? "N/A"}</p>
-              <p><strong>Defesa:</strong> ${details.def ?? "N/A"}</p>
-              <p><strong>Descrição:</strong> ${details.desc}</p>
-            `
-            : `<p>Informações detalhadas não encontradas.</p>`
-        }
-        <a href="${moreInfoUrl}" target="_blank" class="text-blue-600 underline mt-4 inline-block">Mais Informações</a>
-      </div>
-    </div>
-  `;
+  if (details) {
+    detailsEl.innerHTML = `
+      <p><strong>Tipo:</strong> ${details.type}</p>
+      <p><strong>Level/Rank:</strong> ${details.level || details.rank || "N/A"}</p>
+      <p><strong>Ataque:</strong> ${details.atk ?? "N/A"}</p>
+      <p><strong>Defesa:</strong> ${details.def ?? "N/A"}</p>
+      <p><strong>Descrição:</strong> ${details.desc}</p>
+    `;
+  } else {
+    detailsEl.innerHTML = `<p>Informações detalhadas não encontradas.</p>`;
+  }
 }
     
     const modal = document.getElementById("card-modal");
