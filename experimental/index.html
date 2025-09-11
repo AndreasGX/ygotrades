@@ -282,30 +282,38 @@
   const detailsEl = document.getElementById("modal-card-details");
   const linkEl = document.getElementById("modal-card-link");
 
+  // Show modal
   modal.classList.remove("hidden");
 
-  // Set basic info immediately
-  imgEl.src = card.customImage ? card.customImage : `https://images.ygoprodeck.com/images/cards/${card.passcode.replace(/^0+/, "")}.jpg`;
+  // Prepare image and link
+  const cardId = card.passcode?.replace(/^0+/, "") || "";
+  imgEl.src = card.customImage || `https://images.ygoprodeck.com/images/cards/${cardId}.jpg`;
   imgEl.alt = card.name;
   nameEl.textContent = card.name;
+  linkEl.href = cardId ? `https://ygoprodeck.com/card/?search=${cardId}` : "#";
+
+  // Show loading
   detailsEl.innerHTML = "<p>Carregando...</p>";
 
-  const moreInfoUrl = card.passcode ? `https://ygoprodeck.com/card/?search=${card.passcode.replace(/^0+/, "")}` : "#";
-  linkEl.href = moreInfoUrl;
-
+  // Fetch and display details
   const details = await fetchCardDetails(card.passcode);
-
-  if (details) {
-    detailsEl.innerHTML = `
-      <p><strong>Tipo:</strong> ${details.type}</p>
-      <p><strong>Level/Rank:</strong> ${details.level || details.rank || "N/A"}</p>
-      <p><strong>Ataque:</strong> ${details.atk ?? "N/A"}</p>
-      <p><strong>Defesa:</strong> ${details.def ?? "N/A"}</p>
-      <p><strong>Descrição:</strong> ${details.desc}</p>
-    `;
-  } else {
+  if (!details) {
     detailsEl.innerHTML = `<p>Informações detalhadas não encontradas.</p>`;
+    return;
   }
+
+  detailsEl.innerHTML = `
+    <p><strong>detalhes???:</strong> ${details}</p>
+    <p><strong>tipo:</strong> ${details.type}</p>
+    <p><strong>Atributo:</strong> ${details.attribute ?? "N/A"}</p>
+    <p><strong>Tipo:</strong> ${details.race ?? "N/A"}</p>
+    <p><strong>Nível/Ranque/Link:</strong> ${details.level ?? details.rank ?? details.linkval ?? "N/A"}</p>
+    <p><strong>Escala Pêndulo::</strong> ${details.pendulum_scale ?? "N/A"}</p>
+    <p><strong>Setas:</strong> ${details.link_arrows ?? "N/A"}</p>
+    <p><strong>ATK:</strong> ${details.atk ?? "N/A"}</p>
+    <p><strong>DEF:</strong> ${details.def ?? "N/A"}</p>
+    <p><strong>Descrição:</strong> ${details.desc}</p>
+  `;
 }
     
     const modal = document.getElementById("card-modal");
