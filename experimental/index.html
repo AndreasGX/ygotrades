@@ -302,17 +302,18 @@
     return;
   }
 
-const bantext = details.ban_tcg === "Forbidden" ? 
+const banStatus = details.banlist_info?.ban_tcg || "Unlimited";
+
+const bantext = banStatus === "Forbidden" ? 
   `<p style='text-align: center; font-weight: bold; font-size: 1.2em; text-transform: uppercase; color: red;'>PROIBIDO</p>` :
-  details.ban_tcg === "Limited" ? 
+  banStatus === "Limited" ? 
   `<p style='text-align: center; font-weight: bold; font-size: 1.2em; text-transform: uppercase; color: orange;'>LIMITADO</p>` :
-  details.ban_tcg === "Semi-Limited" ? 
+  banStatus === "Semi-Limited" ? 
   `<p style='text-align: center; font-weight: bold; font-size: 1.2em; text-transform: uppercase; color: gold;'>SEMI-LIMITADO</p>` :
   `<p style='text-align: center; font-weight: bold; font-size: 1.2em; text-transform: uppercase; color: green;'>ILIMITADO</p>`;
 
   detailsEl.innerHTML = `
     ${bantext}
-    <p><strong>Descrição/Efeito:</strong> ${details.desc}</p>
     <p><strong>Tipo:</strong> ${details.attribute ? details.attribute + ' ' : ''} ${details.race ? details.race + ' ' : ''}${details.type}</p>
     <p><strong>Nível/Classe/Link:</strong> ${details.level ?? details.rank ?? details.linkval ?? "N/A"}</p>
     <p><strong>Escala Pêndulo:</strong> ${details.scale ?? "N/A"}</p>
