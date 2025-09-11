@@ -311,6 +311,7 @@
     modal.addEventListener("click", e => { if (e.target === modal) modal.classList.add("hidden"); });
     document.addEventListener("keydown", e => { if (e.key === "Escape") modal.classList.add("hidden"); });
 
+
     (async function init() {
       const rows = await loadCsv(csvUrl);
       if (!rows.length) return;
