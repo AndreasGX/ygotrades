@@ -302,8 +302,18 @@
     return;
   }
 
+const banText = details.ban_tcg === "Forbidden" ? "PROIBIDO"
+  : details.ban_tcg === "Limited" ? "LIMITADO"
+  : details.ban_tcg === "Semi-Limited" ? "SEMI-LIMITADO"
+  : "ILIMITADO";
+
+const banColor = details.ban_tcg === "Forbidden" ? "red"
+  : details.ban_tcg === "Limited" ? "orange"
+  : details.ban_tcg === "Semi-Limited" ? "gold" // slightly better than pure yellow
+  : "green";
+      
   detailsEl.innerHTML = `
-    <p style="text-align: center;"><strong>${details.ban_tcg ?? 'Ilimitado'}</strong></p>
+    <p style="text-align: center; font-weight: bold; font-size: 1.2em; color: ${banColor}; text-transform: uppercase;">${banText}</p>
     <p><strong>Descrição/Efeito:</strong> ${details.desc}</p>
     <p><strong>Tipo:</strong> ${details.attribute ? details.attribute + ' ' : ''} ${details.race ? details.race + ' ' : ''}${details.type}</p>
     <p><strong>Nível/Classe/Link:</strong> ${details.level ?? details.rank ?? details.linkval ?? "N/A"}</p>
