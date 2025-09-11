@@ -63,7 +63,7 @@
 
     <!-- Right: Info -->
     <div class="flex-1 p-4 overflow-y-auto flex flex-col" id="modal-card-info">
-      <h2 class="text-2xl font-bold mb-4" id="modal-card-name"></h2>
+      <h2 class="text-2xl font-bold mb-4" style="text-align: center" id="modal-card-name"></h2>
       <div id="modal-card-details" class="flex-1">
         <p>Carregando...</p>
       </div>
@@ -315,8 +315,7 @@ const bantext = banStatus === "Forbidden" ?
   detailsEl.innerHTML = `
     ${bantext}
     <p><strong>Tipo:</strong> ${details.attribute ? details.attribute + ' ' : ''} ${details.race ? details.race + ' ' : ''}${details.type}</p>
-    <p><strong>Nível/Classe/Link:</strong> ${details.level ?? details.rank ?? details.linkval ?? "N/A"}</p>
-    <p><strong>Escala Pêndulo:</strong> ${details.scale ?? "N/A"}</p>
+    <p><strong>Nível/Classe/Link:</strong> ${details.level ?? details.rank ?? details.linkval ?? "N/A"} <strong>Escala Pêndulo:</strong> ${details.scale ?? "N/A"}</p>
     <p><strong>ATK/</strong>${details.ATK ?? 'N/A'} <strong>DEF/</strong>${details.DEF ?? 'N/A'}</p>
     <p><strong>Descrição/Efeito:</strong> ${details.desc}</p>
   `;
