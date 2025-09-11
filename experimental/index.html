@@ -55,14 +55,16 @@
   <div id="modal-content" class="bg-white rounded-xl shadow-lg w-full max-w-[700px] aspect-[59/43] flex overflow-hidden relative">
     <!-- Close Button -->
     <button id="modal-close" class="absolute top-3 right-3 text-red-600 text-2xl font-bold hover:text-red-800">&times;</button>
+
     <!-- Left: Card Image -->
-    <div class="flex-shrink-0 w-[43%] flex items-center justify-center bg-gray-100 p-4">
-      <img id="modal-card-image" src="" alt="" class="object-contain h-full w-full rounded">
+    <div class="w-[250px] flex-none flex items-center justify-center bg-gray-100 p-4">
+      <img id="modal-card-image" src="" alt="" class="object-contain h-full rounded">
     </div>
+
     <!-- Right: Info -->
-    <div class="flex-1 p-4 overflow-y-auto" id="modal-card-info">
+    <div class="flex-1 p-4 overflow-y-auto flex flex-col" id="modal-card-info">
       <h2 class="text-2xl font-bold mb-4" id="modal-card-name"></h2>
-      <div id="modal-card-details">
+      <div id="modal-card-details" class="flex-1">
         <p>Carregando...</p>
       </div>
       <a href="#" target="_blank" class="text-blue-600 underline mt-4 inline-block" id="modal-card-link">Mais Informações</a>
