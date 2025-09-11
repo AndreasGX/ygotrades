@@ -302,17 +302,15 @@
     return;
   }
 
+    const typeParts = details.type.split(" ");
+      
   detailsEl.innerHTML = `
-    <p><strong>detalhes???:</strong> ${details}</p>
-    <p><strong>tipo:</strong> ${details.type}</p>
-    <p><strong>Atributo:</strong> ${details.attribute ?? "N/A"}</p>
-    <p><strong>Tipo:</strong> ${details.race ?? "N/A"}</p>
+    <p><strong>tipo:</strong> ${$details.attribute ? details.attribute + ' ' : ''} ${details.race ? details.race + ' ' : ''}${details.type}</p>
     <p><strong>Nível/Ranque/Link:</strong> ${details.level ?? details.rank ?? details.linkval ?? "N/A"}</p>
     <p><strong>Escala Pêndulo::</strong> ${details.pendulum_scale ?? "N/A"}</p>
     <p><strong>Setas:</strong> ${details.link_arrows ?? "N/A"}</p>
-    <p><strong>ATK:</strong> ${details.atk ?? "N/A"}</p>
-    <p><strong>DEF:</strong> ${details.def ?? "N/A"}</p>
-    <p><strong>Descrição:</strong> ${details.desc}</p>
+    <p><strong>ATK</strong> ${details.atk ?? "N/A"} / DEF ${details.def ?? "N/A"}</p>
+    <p><strong>Descrição/Efeito:</strong> ${details.desc}</p>
   `;
 }
     
