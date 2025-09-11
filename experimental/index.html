@@ -51,27 +51,27 @@
   </div>
 
   <!-- Card Details Modal -->
-  <div id="card-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-    <div id="modal-content" class="bg-white rounded-xl shadow-lg w-[70vw] max-w-[900px] flex overflow-hidden relative" style="aspect-ratio:59/43;">
-    
-      <!-- Close Button -->
-      <button id="modal-close" class="absolute top-3 right-3 text-red-600 text-2xl font-bold hover:text-red-800">&times;</button>
+<div id="card-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+  <div id="modal-content" class="bg-white rounded-xl shadow-lg w-[70vw] max-w-[900px] flex overflow-hidden relative" style="height:70vh;">
 
-      <!-- Left: Card Image -->
-      <div class="flex-shrink-0 p-3" style="width:auto; display:flex; align-items:center; justify-content:center;">
-        <img id="modal-card-image" src="" alt="" class="object-contain h-full" style="aspect-ratio:59/86;">
-      </div>
+    <!-- Close Button -->
+    <button id="modal-close" class="absolute top-3 right-3 text-red-600 text-2xl font-bold hover:text-red-800">&times;</button>
 
-      <!-- Right: Info -->
-      <div class="flex-1 p-6 overflow-y-auto" id="modal-card-info">
-        <h2 class="text-2xl font-bold mb-4" id="modal-card-name"></h2>
-        <div id="modal-card-details">
-          <p>Carregando...</p>
-        </div>
-        <a href="#" target="_blank" class="text-blue-600 underline mt-4 inline-block" id="modal-card-link">Mais Informações</a>
+    <!-- Left: Card Image -->
+    <div class="flex-shrink-0 flex items-center justify-start" style="width:auto; padding-left:12px; padding-right:12px;">
+      <img id="modal-card-image" src="" alt="" class="h-full object-contain" style="aspect-ratio:59/86;">
+    </div>
+
+    <!-- Right: Info -->
+    <div class="flex-1 p-6 overflow-y-auto" style="min-width:0;" id="modal-card-info">
+      <h2 class="text-2xl font-bold mb-4" id="modal-card-name"></h2>
+      <div id="modal-card-details">
+        <p>Carregando...</p>
       </div>
+      <a href="#" target="_blank" class="text-blue-600 underline mt-4 inline-block" id="modal-card-link">Mais Informações</a>
     </div>
   </div>
+</div>
 
   <script>
     const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQpJVCUhWxyH_TM4-83ra9FXLCES8yqIBVQy3ed6OoVZwbSH4LkoVh7gBn6K2iz32cQNftsj1E-UIiK/pub?output=csv";
