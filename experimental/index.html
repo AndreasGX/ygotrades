@@ -323,23 +323,23 @@
 
         // Check duplicates in selling
         sellingCards.forEach(c => {
-          const key = `${c.name}|${c.setid}`;
+          const key = `${c.passcode}|${c.setid}`;
           if (sellingMap.has(key)) warnings.push(`Duplicado em "Tenho": ${c.name} (${c.setid})`);
           sellingMap.set(key, true);
         });
 
         // Check duplicates in wanted
         wantedCards.forEach(c => {
-          const key = `${c.name}|${c.setid}`;
-          if (wantedMap.has(key)) warnings.push(`Duplicado em "Quero": ${c.name} (${c.setid})`);
+          const key = `${c.passcode}`;
+          if (wantedMap.has(key)) warnings.push(`Duplicado em "Quero": ${c.name}`);
           wantedMap.set(key, true);
         });
 
-        // Check same name in both lists
-        const sellingNames = new Set(sellingCards.map(c => c.name));
-        const wantedNames = new Set(wantedCards.map(c => c.name));
-        sellingNames.forEach(name => {
-          if (wantedNames.has(name)) warnings.push(`"${name}" aparece em "Tenho" e "Quero"`);
+        // Check same passcode + Set-ID in both lists
+        const sellingKeys = new Set(sellingCards.map(c => `${c.passcode}`));
+        wantedCards.forEach(c => {
+          const key = `${c.passcode}`;
+          if (sellingKeys.has(key)) warnings.push(`${c.name} aparece em "Tenho" e "Quero"`);
         });
 
         document.getElementById("warnings").innerHTML = warnings.length
