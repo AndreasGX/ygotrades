@@ -127,12 +127,12 @@
 
       let priceDisplay = "";
       if (card.price && qtyNum > 0) {
-        priceDisplay = `<p class="text-sm text-green-600 font-bold">R$ ${formatPrice(card.price)}</p>`;
+        priceDisplay = `<p class="text-sm text-green-600 font-semibold">R$ ${formatPrice(card.price)}</p>`;
       }
 
       let quantityDisplay = "";
       if (qtyNum > 0) {
-        quantityDisplay = `<p class="text-sm text-blue-600">Quantidade: ${qtyNum}</p>`;
+        quantityDisplay = `<p class="text-sm text-blue-600">Cópias: ${qtyNum}</p>`;
       }
 
       let outOfStockBadge = "";
