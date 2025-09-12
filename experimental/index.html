@@ -228,16 +228,19 @@
               if (withSelection) {
                 const cb = el.querySelector(".card-checkbox");
                 const qtyInput = el.querySelector(".quantity-input");
-                if (cb && selectedSelling[index] !== undefined) {
+                if (withSelection && cb && selectedSelling[index] !== undefined) {
                   cb.checked = true;
                   if (qtyInput) qtyInput.value = selectedSelling[index];
                 }
               }
             }
-        });
-        if (!hasResults) {
+          }
+        }); // <-- make sure this closes the forEach
+
+        if (!hasResults) {  // <-- now correctly outside the forEach
           listEl.innerHTML = `<p class="text-gray-500 italic text-center">Ops! Nada para ver aqui...</p>`;
         }
+
         if (withSelection) {
           currentSellingOrder = visibleIndices;
           listEl.querySelectorAll('.card-checkbox').forEach(cb => {
