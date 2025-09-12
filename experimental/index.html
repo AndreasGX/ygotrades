@@ -172,7 +172,7 @@
         const priceNum = parseFloat(rawPrice) || 0;
         const q = Number(qty) || 0;
         total += priceNum * q;
-        count += q;  // ✅ count units
+        count += q;
       }
       document.getElementById("selling-total").textContent =
         `Total: R$ ${total.toFixed(2).replace('.', ',')} (${count} cards)`;
@@ -239,9 +239,9 @@
               }
             }
           }
-        }); // <-- make sure this closes the forEach
+        });
 
-        if (!hasResults) {  // <-- now correctly outside the forEach
+        if (!hasResults) {
           listEl.innerHTML = `<p class="text-gray-500 italic text-center">Ops! Nada para ver aqui...</p>`;
         }
 
