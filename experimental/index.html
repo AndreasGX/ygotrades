@@ -311,7 +311,7 @@
         if (!data.error && data.data?.length) return data.data[0];
 
         // Fallback: try English
-        res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${code}&language=en`);
+        res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${code}`);
         if (!res.ok) return null;
         data = await res.json();
         if (!data.error && data.data?.length) return data.data[0];
