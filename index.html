@@ -101,65 +101,65 @@
     }
 
     function createCardElement(card, index, withSelection = false) {
-      if (!card.name) return null;
-      let image = "";
-      if (card.customImage) {
-        image = card.customImage;
-      } else if (card.passcode) {
-        const code = card.passcode.replace(/^0+/, "");
-        image = `https://images.ygoprodeck.com/images/cards/${code}.jpg`;
-      }
+  if (!card.name) return null;
 
-      const div = document.createElement("div");
-      div.className = "bg-white rounded-xl shadow-md p-3 flex gap-3 items-center";
+  // Image URL: remove leading zeroes
+  let image = card.customImage || "";
+  if (!image && card.passcode) {
+    const code = card.passcode.replace(/^0+/, "");
+    image = `https://images.ygoprodeck.com/images/cards/${code}.jpg`;
+  }
 
-      const qtyNum = parseInt(card.quantity, 10);
-      const isOutOfStock = Number.isFinite(qtyNum) ? qtyNum === 0 : false;
-      if (isOutOfStock) div.classList.add("out-of-stock");
+  const div = document.createElement("div");
+  div.className = "bg-white rounded-xl shadow-md p-3 flex gap-3 items-center";
 
-      let checkboxHtml = "";
-      let quantityHtml = "";
-      if (withSelection && !isOutOfStock) {
-        checkboxHtml = `<input type="checkbox" class="card-checkbox w-5 h-5" data-index="${index}">`;
-        const maxAttr = Math.max(1, qtyNum || 1);
-        quantityHtml = `<input type="number" min="1" max="${maxAttr}" value="1" class="quantity-input border rounded w-16 p-1 mt-1 text-sm" data-index="${index}">`;
-      }
+  const qtyNum = parseInt(card.quantity, 10);
+  const isOutOfStock = Number.isFinite(qtyNum) ? qtyNum === 0 : false;
+  if (isOutOfStock) div.classList.add("out-of-stock");
 
-      let priceDisplay = "";
-      if (card.price && qtyNum > 0) {
-        priceDisplay = `<p class="text-sm text-green-600 font-semibold">R$ ${formatPrice(card.price)}</p>`;
-      }
+  let checkboxHtml = "";
+  let quantityHtml = "";
+  if (withSelection && !isOutOfStock) {
+    checkboxHtml = `<input type="checkbox" class="card-checkbox w-5 h-5" data-index="${index}">`;
+    const maxAttr = Math.max(1, qtyNum || 1);
+    quantityHtml = `<input type="number" min="1" max="${maxAttr}" value="1" class="quantity-input border rounded w-16 p-1 mt-1 text-sm" data-index="${index}">`;
+  }
 
-      let quantityDisplay = "";
-      if (qtyNum > 0) {
-        quantityDisplay = `<p class="text-sm text-blue-600">Cópias: ${qtyNum}</p>`;
-      }
+  let priceDisplay = "";
+  if (card.price && qtyNum > 0) {
+    priceDisplay = `<p class="text-sm text-green-600 font-semibold">R$ ${formatPrice(card.price)}</p>`;
+  }
 
-      let outOfStockBadge = "";
-      if (isOutOfStock) {
-        outOfStockBadge = `<p class="text-sm text-red-500 font-semibold">ESGOTADO</p>`;
-      }
+  let quantityDisplay = "";
+  if (qtyNum > 0) {
+    quantityDisplay = `<p class="text-sm text-blue-600">Cópias: ${qtyNum}</p>`;
+  }
 
-      div.innerHTML = `
-        ${checkboxHtml}
-        <img src="${image}" alt="${card.name}" class="w-20 h-[86px] object-contain rounded cursor-pointer">
-        <div>
-          <h4 class="font-bold">${card.name}</h4>
-          ${card.setid ? `<p class="text-sm text-gray-600">${card.setid}</p>` : ""}
-          ${priceDisplay}
-          ${quantityDisplay}
-          ${outOfStockBadge}
-          ${quantityHtml}
-        </div>
-      `;
+  let outOfStockBadge = "";
+  if (isOutOfStock) {
+    outOfStockBadge = `<p class="text-sm text-red-500 font-semibold">ESGOTADO</p>`;
+  }
 
-      div.querySelector("img")?.addEventListener("click", e => {
-        e.stopPropagation();
-        showCardModal(card);
-      });
+  div.innerHTML = `
+    ${checkboxHtml}
+    <img src="${image}" alt="${card.name}" class="w-20 h-[86px] object-contain rounded cursor-pointer">
+    <div>
+      <h4 class="font-bold">${card.name}</h4>
+      ${card.setid ? `<p class="text-sm text-gray-600">${card.setid}</p>` : ""}
+      ${priceDisplay}
+      ${quantityDisplay}
+      ${outOfStockBadge}
+      ${quantityHtml}
+    </div>
+  `;
 
-      return div;
-    }
+  div.querySelector("img")?.addEventListener("click", e => {
+    e.stopPropagation();
+    showCardModal(card);
+  });
+
+  return div;
+}
 
     function updateSellingTotal() {
       let total = 0;
@@ -181,6 +181,14 @@
     function generateSellingListText() {
       let output = [];
 
+      // Count how many times each name appears
+      const nameCounts = {};
+      sellingCards.forEach(c => {
+        if (!c) return;
+        const name = c.name;
+        nameCounts[name] = (nameCounts[name] || 0) + 1;
+      });
+
       currentSellingOrder.forEach(idx => {
         const card = sellingCards[idx];
         if (!card) return;
@@ -189,20 +197,10 @@
         const qty = selectedSelling[idx];
         let line = `${qty} ${card.name}`;
 
-        // --- SET-ID + last passcode digit ---
-        if (card.setid || card.passcode) {
-          let trimmedSet = "";
-          if (card.setid) {
-            // Keep only prefix before the hyphen
-            trimmedSet = card.setid.split("-")[0];
-          }
-
-          let lastDigit = "";
-          if (card.passcode) {
-            lastDigit = card.passcode.toString().slice(-1);
-          }
-
-          // Always combine if we have either one
+        // Only add SETID+digit if there are duplicates
+        if (nameCounts[card.name] > 1) {
+          let trimmedSet = card.setid ? card.setid.split("-")[0] : "";
+          let lastDigit = card.passcode ? card.passcode.toString().slice(-1) : "";
           line += ` (${trimmedSet}${lastDigit})`;
         }
 
@@ -300,19 +298,33 @@
     }
 
     async function fetchCardDetails(passcode) {
-      if (!passcode) return null;
-      const code = passcode.replace(/^0+/, "");
-      try {
-        const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${code}&language=pt`);
-        if (!res.ok) return null;
-        const data = await res.json();
-        if (data.error || !data.data?.length) return null;
-        return data.data[0];
-      } catch {
-        return null;
+  if (!passcode) return null;
+
+  try {
+    // Try Portuguese first
+    let res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${passcode}&language=pt`);
+    if (res.ok) {
+      const data = await res.json();
+      if (!data.error && data.data?.length) {
+        return Object.assign({}, data.data[0], { _fetchedLang: 'pt' });
       }
     }
 
+    // Fallback: English
+    res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${passcode}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (!data.error && data.data?.length) {
+        return Object.assign({}, data.data[0], { _fetchedLang: 'en' });
+      }
+    }
+
+    return null;
+  } catch (err) {
+    console.error("fetchCardDetails error:", err);
+    return null;
+  }
+}
     async function showCardModal(card) {
   const modal = document.getElementById("card-modal");
   const imgEl = document.getElementById("modal-card-image");
@@ -340,31 +352,36 @@
     return;
   }
 
-const banStatus = details.banlist_info?.ban_tcg || "Unlimited";
+  // Note if we fell back to English
+  const fetchedLang = details._fetchedLang || 'pt';
+  const langNote = fetchedLang !== 'pt' 
+    ? `<p class="text-sm text-yellow-600 font-semibold"> Indisponível em Português — Exibindo em Inglês.</p>`
+    : '';
 
-const bantext = banStatus === "Forbidden" ? 
-  `<p style='text-align: center; font-weight: bold; font-size: 1.2em; text-transform: uppercase; color: red;'>PROIBIDO</p>` :
-  banStatus === "Limited" ? 
-  `<p style='text-align: center; font-weight: bold; font-size: 1.2em; text-transform: uppercase; color: orange;'>LIMITADO</p>` :
-  banStatus === "Semi-Limited" ? 
-  `<p style='text-align: center; font-weight: bold; font-size: 1.2em; text-transform: uppercase; color: gold;'>SEMI-LIMITADO</p>` :
-  `<p style='text-align: center; font-weight: bold; font-size: 1.2em; text-transform: uppercase; color: green;'>ILIMITADO</p>`;
+  // banlist formatting (keeps your existing colors)
+  const banStatus = details.banlist_info?.ban_tcg || "Unlimited";
+  const bantext = banStatus === "Forbidden" ? 
+    `<p style='text-align:center;font-weight:bold;font-size:1.2em;text-transform:uppercase;color:red;'>PROIBIDO</p>` :
+    banStatus === "Limited" ? 
+    `<p style='text-align:center;font-weight:bold;font-size:1.2em;text-transform:uppercase;color:orange;'>LIMITADO</p>` :
+    banStatus === "Semi-Limited" ? 
+    `<p style='text-align:center;font-weight:bold;font-size:1.2em;text-transform:uppercase;color:gold;'>SEMI-LIMITADO</p>` :
+    `<p style='text-align:center;font-weight:bold;font-size:1.2em;text-transform:uppercase;color:green;'>ILIMITADO</p>`;
 
   detailsEl.innerHTML = `
+    ${langNote}
     ${bantext}
-    <p><strong>Tipo:</strong> ${details.attribute ? details.attribute + ' ' : ''} ${details.race ? details.race + ' ' : ''}${details.type ?? N/A}</p>
-    <p><strong>Nível/Classe/Link:</strong> ${details.level ?? details.rank ?? details.linkval ?? "N/A"}</p>
-    <p><strong>Escala:</strong> ${details.scale ?? "N/A"}</p>
-    <p><strong>ATK/</strong> ${details.atk ?? 'N/A'} <strong>DEF/</strong> ${details.def ?? 'N/A'}</p>
-    <p><strong>Descrição/Efeito:</strong> ${details.desc}</p>
+    <p><strong>Tipo:</strong> ${details.attribute ? details.attribute + ' ' : ''}${details.race ? details.race + ' ' : ''}${details.type ?? 'N/A'}</p>
+    <p><strong>Nível/Classe/Link:</strong> ${details.level ?? details.rank ?? details.linkval ?? 'N/A'}</p>
+    <p><strong>Escala:</strong> ${details.scale ?? 'N/A'}</p>
+    <p><strong>ATK/DEF:</strong> ${details.atk ?? 'N/A'} / ${details.def ?? 'N/A'}</p>
+    <p><strong>Descrição/Efeito:</strong> ${details.desc ?? 'N/A'}</p>
   `;
-}
     
-    const modal = document.getElementById("card-modal");
     document.getElementById("modal-close").addEventListener("click", () => modal.classList.add("hidden"));
     modal.addEventListener("click", e => { if (e.target === modal) modal.classList.add("hidden"); });
     document.addEventListener("keydown", e => { if (e.key === "Escape") modal.classList.add("hidden"); });
-
+    }
 
     (async function init() {
       const rows = await loadCsv(csvUrl);
