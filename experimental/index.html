@@ -125,9 +125,15 @@
         quantityHtml = `<input type="number" min="1" max="${maxAttr}" value="1" class="quantity-input border rounded w-16 p-1 mt-1 text-sm" data-index="${index}">`;
       }
 
+      let priceDisplay = "";
+      if (card.price && qtyNum > 0) {
+        priceDisplay = `<p class="text-sm text-green-600 font-bold">R$ ${formatPrice(card.price)}</p>`;
+      }
+
       let quantityDisplay = "";
-      if (card.quantity !== undefined && card.quantity !== "") {
-        quantityDisplay = `<p class="text-sm text-blue-600">Qtd: ${card.quantity}</p>`;
+      const qtyNum = parseInt(card.quantity, 10);
+      if (qtyNum > 0) {
+        quantityDisplay = `<p class="text-sm text-blue-600">Quantidade: ${qtyNum}</p>`;
       }
 
       let outOfStockBadge = "";
@@ -140,9 +146,8 @@
         <img src="${image}" alt="${card.name}" class="w-20 h-[86px] object-contain rounded cursor-pointer">
         <div>
           <h4 class="font-bold">${card.name}</h4>
-          ${card.setid ? `<p class="text-sm text-gray-600">Número: ${card.setid}</p>` : ""}
-          ${card.passcode ? `<p class="text-sm text-gray-600">Código: ${card.passcode}</p>` : ""}
-          ${card.price ? `<p class="text-sm text-green-600">R$ ${formatPrice(card.price)}</p>` : ""}
+          ${card.setid ? `<p class="text-sm text-gray-600">${card.setid}</p>` : ""}
+          ${priceDisplay}
           ${quantityDisplay}
           ${outOfStockBadge}
           ${quantityHtml}
