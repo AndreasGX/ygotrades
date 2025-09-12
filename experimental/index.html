@@ -299,10 +299,11 @@
 
     async function fetchCardDetails(passcode) {
       if (!passcode) return null;
-
+      const code = card.passcode.replace(/^0+/, "");
+      
       try {
         // Try Portuguese first
-        let res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${passcode}&language=pt`);
+        let res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${code}&language=pt`);
         if (res.ok) {
           const data = await res.json();
           if (!data.error && data.data?.length) {
@@ -312,7 +313,7 @@
         }
 
         // Fallback: English (default, no language param)
-        res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${passcode}`);
+        res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${code}`);
         if (res.ok) {
           const data = await res.json();
           if (!data.error && data.data?.length) {
