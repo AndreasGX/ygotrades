@@ -355,7 +355,7 @@
   // Note if we fell back to English
   const fetchedLang = details._fetchedLang || 'pt';
   const langNote = fetchedLang !== 'pt' 
-    ? `<p class="text-sm text-yellow-600 font-semibold"> Indisponível em Português — Exibindo em Inglês.</p>`
+    ? `<p class="text-sm text-yellow-600 font-semibold" style="text-align:center"> Indisponível em Português — Exibindo em Inglês.</p>`
     : '';
 
   // banlist formatting (keeps your existing colors)
@@ -369,8 +369,8 @@
     `<p style='text-align:center;font-weight:bold;font-size:1.2em;text-transform:uppercase;color:green;'>ILIMITADO</p>`;
 
   detailsEl.innerHTML = `
-    ${langNote}
     ${bantext}
+    ${langNote}
     <p><strong>Tipo:</strong> ${details.attribute ? details.attribute + ' ' : ''}${details.race ? details.race + ' ' : ''}${details.type ?? 'N/A'}</p>
     <p><strong>Nível/Classe/Link:</strong> ${details.level ?? details.rank ?? details.linkval ?? 'N/A'}</p>
     <p><strong>Escala:</strong> ${details.scale ?? 'N/A'}</p>
