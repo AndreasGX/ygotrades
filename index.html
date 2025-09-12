@@ -352,9 +352,9 @@ const bantext = banStatus === "Forbidden" ?
 
   detailsEl.innerHTML = `
     ${bantext}
-    <p><strong>Tipo:</strong> ${details.attribute ? details.attribute + ' ' : ''} ${details.race ? details.race + ' ' : ''}${details.type}</p>
+    <p><strong>Tipo:</strong> ${details.attribute ? details.attribute + ' ' : ''} ${details.race ? details.race + ' ' : ''}${details.type ?? N/A}</p>
     <p><strong>Nível/Classe/Link:</strong> ${details.level ?? details.rank ?? details.linkval ?? "N/A"}</p>
-    <p><strong>Escala:</strong> ${details.scale}</p>
+    <p><strong>Escala:</strong> ${details.scale ?? "N/A"}</p>
     <p><strong>ATK/</strong> ${details.atk ?? 'N/A'} <strong>DEF/</strong> ${details.def ?? 'N/A'}</p>
     <p><strong>Descrição/Efeito:</strong> ${details.desc}</p>
   `;
@@ -493,5 +493,9 @@ const bantext = banStatus === "Forbidden" ?
       });
     })();
   </script>
+    <p class="text-center text-gray-700 mt-6">
+    Decidiu e copiou sua lista? Fale comigo no 
+    <a href="https://wa.me/5588997123073" target="_blank" class="text-green-600 underline font-semibold">Whatsapp</a>.
+  </p>
 </body>
 </html>
