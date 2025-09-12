@@ -176,18 +176,35 @@
 
     function generateSellingListText() {
       let output = [];
+
       currentSellingOrder.forEach(idx => {
         const card = sellingCards[idx];
         if (!card) return;
         if (!selectedSelling[idx]) return;
+
         const qty = selectedSelling[idx];
         let line = `${qty} ${card.name}`;
-        if (card.setid) {
-          const trimmedSet = card.setid.split("-")[0];
-          line += ` (${trimmedSet})`;
+
+        // --- SET-ID + last passcode digit ---
+        if (card.setid || card.passcode) {
+          let trimmedSet = "";
+          if (card.setid) {
+            // Keep only prefix before the hyphen
+            trimmedSet = card.setid.split("-")[0];
+          }
+
+          let lastDigit = "";
+          if (card.passcode) {
+            lastDigit = card.passcode.toString().slice(-1);
+          }
+
+          // Always combine if we have either one
+          line += ` (${trimmedSet}${lastDigit})`;
         }
+
         output.push(line);
       });
+
       return output.join("\n");
     }
 
