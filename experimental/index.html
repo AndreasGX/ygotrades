@@ -299,23 +299,30 @@
 
     async function fetchCardDetails(passcode) {
       if (!passcode) return null;
-      const code = passcode.replace(/^0+/, "");
 
-      // First try Portuguese
       try {
-        let res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${code}&language=pt`);
-        if (!res.ok) throw new Error();
-        let data = await res.json();
-        if (!data.error && data.data?.length) return data.data[0];
+        // Try Portuguese first
+        let res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${passcode}&language=pt`);
+        if (res.ok) {
+          const data = await res.json();
+          if (!data.error && data.data?.length) {
+            // return object and mark language
+            return Object.assign({}, data.data[0], { _fetchedLang: 'pt' });
+          }
+        }
 
-        // Fallback: try English
-        res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${code}`);
-        if (!res.ok) return null;
-        data = await res.json();
-        if (!data.error && data.data?.length) return data.data[0];
+        // Fallback: English (default, no language param)
+        res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${passcode}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (!data.error && data.data?.length) {
+            return Object.assign({}, data.data[0], { _fetchedLang: 'en' });
+          }
+        }
 
         return null;
-      } catch {
+      } catch (err) {
+        console.error("fetchCardDetails error:", err);
         return null;
       }
     }
@@ -347,25 +354,31 @@
     return;
   }
 
-const banStatus = details.banlist_info?.ban_tcg || "Unlimited";
+  // Note if we fell back to English
+  const fetchedLang = details._fetchedLang || 'pt';
+  const langNote = fetchedLang !== 'pt' 
+    ? `<p class="text-sm text-yellow-600 font-semibold"> Indisponível em Português — Exibindo em Inglês.</p>`
+    : '';
 
-const bantext = banStatus === "Forbidden" ? 
-  `<p style='text-align: center; font-weight: bold; font-size: 1.2em; text-transform: uppercase; color: red;'>PROIBIDO</p>` :
-  banStatus === "Limited" ? 
-  `<p style='text-align: center; font-weight: bold; font-size: 1.2em; text-transform: uppercase; color: orange;'>LIMITADO</p>` :
-  banStatus === "Semi-Limited" ? 
-  `<p style='text-align: center; font-weight: bold; font-size: 1.2em; text-transform: uppercase; color: gold;'>SEMI-LIMITADO</p>` :
-  `<p style='text-align: center; font-weight: bold; font-size: 1.2em; text-transform: uppercase; color: green;'>ILIMITADO</p>`;
+  // banlist formatting (keeps your existing colors)
+  const banStatus = details.banlist_info?.ban_tcg || "Unlimited";
+  const bantext = banStatus === "Forbidden" ? 
+    `<p style='text-align:center;font-weight:bold;font-size:1.2em;text-transform:uppercase;color:red;'>PROIBIDO</p>` :
+    banStatus === "Limited" ? 
+    `<p style='text-align:center;font-weight:bold;font-size:1.2em;text-transform:uppercase;color:orange;'>LIMITADO</p>` :
+    banStatus === "Semi-Limited" ? 
+    `<p style='text-align:center;font-weight:bold;font-size:1.2em;text-transform:uppercase;color:gold;'>SEMI-LIMITADO</p>` :
+    `<p style='text-align:center;font-weight:bold;font-size:1.2em;text-transform:uppercase;color:green;'>ILIMITADO</p>`;
 
   detailsEl.innerHTML = `
+    ${langNote}
     ${bantext}
-    <p><strong>Tipo:</strong> ${details.attribute ? details.attribute + ' ' : ''} ${details.race ? details.race + ' ' : ''}${details.type ?? N/A}</p>
-    <p><strong>Nível/Classe/Link:</strong> ${details.level ?? details.rank ?? details.linkval ?? "N/A"}</p>
-    <p><strong>Escala:</strong> ${details.scale ?? "N/A"}</p>
-    <p><strong>ATK/</strong> ${details.atk ?? 'N/A'} <strong>DEF/</strong> ${details.def ?? 'N/A'}</p>
-    <p><strong>Descrição/Efeito:</strong> ${details.desc}</p>
+    <p><strong>Tipo:</strong> ${details.attribute ? details.attribute + ' ' : ''}${details.race ? details.race + ' ' : ''}${details.type ?? 'N/A'}</p>
+    <p><strong>Nível/Classe/Link:</strong> ${details.level ?? details.rank ?? details.linkval ?? 'N/A'}</p>
+    <p><strong>Escala:</strong> ${details.scale ?? 'N/A'}</p>
+    <p><strong>ATK/DEF:</strong> ${details.atk ?? 'N/A'} / ${details.def ?? 'N/A'}</p>
+    <p><strong>Descrição/Efeito:</strong> ${details.desc ?? 'N/A'}</p>
   `;
-}
     
     const modal = document.getElementById("card-modal");
     document.getElementById("modal-close").addEventListener("click", () => modal.classList.add("hidden"));
