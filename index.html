@@ -33,7 +33,9 @@
       <div id="selling-list" class="grid gap-4 h-[70vh] overflow-y-auto mb-4"></div>
       <div class="flex items-center gap-4">
         <p id="selling-total" class="font-semibold text-lg">Total: R$ 0,00</p>
-        <button id="copy-selling" class="ml-auto bg-green-500 text-white px-3 py-1 rounded text-sm">Copiar Seleção</button>
+        <button id="copy-selling" class="ml-auto bg-green-500 text-white px-3 py-1 rounded text-sm" title="">
+  Copiar Seleção
+</button>
       </div>
     </div>
 
@@ -52,12 +54,12 @@
 
   <!-- Card Details Modal -->
 <div id="card-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50 p-4">
-  <div id="modal-content" class="bg-white rounded-xl shadow-lg w-full max-w-[926px] aspect-[59/43] flex overflow-hidden relative">
+  <div id="modal-content" class="bg-white rounded-xl shadow-lg w-full max-w-[960px] aspect-[59/43] flex overflow-hidden relative">
     <!-- Close Button -->
     <button id="modal-close" class="absolute top-3 right-3 text-red-600 text-2xl font-bold hover:text-red-800">&times;</button>
 
     <!-- Left: Card Image -->
-    <div class="w-[472px] flex-none flex items-center justify-center bg-gray-100 p-4">
+    <div class="w-[480px] flex-none flex items-center justify-center bg-gray-100 p-4">
       <img id="modal-card-image" src="" alt="" class="object-contain h-full rounded">
     </div>
 
@@ -118,14 +120,19 @@
       let checkboxHtml = "";
       let quantityHtml = "";
       if (withSelection && !isOutOfStock) {
-        checkboxHtml = `<input type="checkbox" class="card-checkbox" data-index="${index}">`;
+        checkboxHtml = `<input type="checkbox" class="card-checkbox w-5 h-5" data-index="${index}">`;
         const maxAttr = Math.max(1, qtyNum || 1);
         quantityHtml = `<input type="number" min="1" max="${maxAttr}" value="1" class="quantity-input border rounded w-16 p-1 mt-1 text-sm" data-index="${index}">`;
       }
 
+      let priceDisplay = "";
+      if (card.price && qtyNum > 0) {
+        priceDisplay = `<p class="text-sm text-green-600 font-semibold">R$ ${formatPrice(card.price)}</p>`;
+      }
+
       let quantityDisplay = "";
-      if (card.quantity !== undefined && card.quantity !== "") {
-        quantityDisplay = `<p class="text-sm text-blue-600">Qtd: ${card.quantity}</p>`;
+      if (qtyNum > 0) {
+        quantityDisplay = `<p class="text-sm text-blue-600">Cópias: ${qtyNum}</p>`;
       }
 
       let outOfStockBadge = "";
@@ -138,9 +145,8 @@
         <img src="${image}" alt="${card.name}" class="w-20 h-[86px] object-contain rounded cursor-pointer">
         <div>
           <h4 class="font-bold">${card.name}</h4>
-          ${card.setid ? `<p class="text-sm text-gray-600">Número: ${card.setid}</p>` : ""}
-          ${card.passcode ? `<p class="text-sm text-gray-600">Código: ${card.passcode}</p>` : ""}
-          ${card.price ? `<p class="text-sm text-green-600">R$ ${formatPrice(card.price)}</p>` : ""}
+          ${card.setid ? `<p class="text-sm text-gray-600">${card.setid}</p>` : ""}
+          ${priceDisplay}
           ${quantityDisplay}
           ${outOfStockBadge}
           ${quantityHtml}
@@ -157,31 +163,52 @@
 
     function updateSellingTotal() {
       let total = 0;
+      let count = 0;
       for (const [key, qty] of Object.entries(selectedSelling)) {
         const idx = parseInt(key, 10);
         const card = sellingCards[idx];
         if (!card) continue;
         const rawPrice = (card.price || "").toString().replace(',', '.');
         const priceNum = parseFloat(rawPrice) || 0;
-        total += priceNum * (Number(qty) || 0);
+        const q = Number(qty) || 0;
+        total += priceNum * q;
+        count += q;
       }
-      document.getElementById("selling-total").textContent = `Total: R$ ${total.toFixed(2).replace('.', ',')}`;
+      document.getElementById("selling-total").textContent =
+        `Total: R$ ${total.toFixed(2).replace('.', ',')} (${count} cards)`;
     }
 
     function generateSellingListText() {
       let output = [];
+
       currentSellingOrder.forEach(idx => {
         const card = sellingCards[idx];
         if (!card) return;
         if (!selectedSelling[idx]) return;
+
         const qty = selectedSelling[idx];
         let line = `${qty} ${card.name}`;
-        if (card.setid) {
-          const trimmedSet = card.setid.split("-")[0];
-          line += ` (${trimmedSet})`;
+
+        // --- SET-ID + last passcode digit ---
+        if (card.setid || card.passcode) {
+          let trimmedSet = "";
+          if (card.setid) {
+            // Keep only prefix before the hyphen
+            trimmedSet = card.setid.split("-")[0];
+          }
+
+          let lastDigit = "";
+          if (card.passcode) {
+            lastDigit = card.passcode.toString().slice(-1);
+          }
+
+          // Always combine if we have either one
+          line += ` (${trimmedSet}${lastDigit})`;
         }
+
         output.push(line);
       });
+
       return output.join("\n");
     }
 
@@ -201,12 +228,23 @@
               listEl.appendChild(el);
               hasResults = true;
               visibleIndices.push(index);
+
+              if (withSelection) {
+                const cb = el.querySelector(".card-checkbox");
+                const qtyInput = el.querySelector(".quantity-input");
+                if (withSelection && cb && selectedSelling[index] !== undefined) {
+                  cb.checked = true;
+                  if (qtyInput) qtyInput.value = selectedSelling[index];
+                }
+              }
             }
           }
         });
+
         if (!hasResults) {
           listEl.innerHTML = `<p class="text-gray-500 italic text-center">Ops! Nada para ver aqui...</p>`;
         }
+
         if (withSelection) {
           currentSellingOrder = visibleIndices;
           listEl.querySelectorAll('.card-checkbox').forEach(cb => {
@@ -447,6 +485,11 @@ const bantext = banStatus === "Forbidden" ?
         });
       });
 
+      const copyBtn = document.getElementById("copy-selling");
+      copyBtn.addEventListener("mouseenter", () => {
+        const text = generateSellingListText();
+        copyBtn.title = text || "Lista vazia";
+      });
     })();
   </script>
 </body>
