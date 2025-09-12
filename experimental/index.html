@@ -305,13 +305,13 @@
 
       // First try Portuguese
       try {
-        let res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${code}&language=en`);
+        let res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${code}&language=pt`);
         if (!res.ok) throw new Error();
         let data = await res.json();
         if (!data.error && data.data?.length) return data.data[0];
 
         // Fallback: try English
-        res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${code}&language=pt`);
+        res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${code}&language=en`);
         if (!res.ok) return null;
         data = await res.json();
         if (!data.error && data.data?.length) return data.data[0];
