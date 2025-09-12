@@ -378,11 +378,10 @@
     <p><strong>Descrição/Efeito:</strong> ${details.desc ?? 'N/A'}</p>
   `;
     
-    const modal = document.getElementById("card-modal");
     document.getElementById("modal-close").addEventListener("click", () => modal.classList.add("hidden"));
     modal.addEventListener("click", e => { if (e.target === modal) modal.classList.add("hidden"); });
     document.addEventListener("keydown", e => { if (e.key === "Escape") modal.classList.add("hidden"); });
-
+    }
 
     (async function init() {
       const rows = await loadCsv(csvUrl);
