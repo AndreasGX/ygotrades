@@ -205,26 +205,33 @@
   const ascending = document.getElementById("selling-order").textContent === "Ascendente";
 
   // Step 4: sort the selected cards
-  selected.sort((a, b) => {
-    const cardA = a.card;
-    const cardB = b.card;
-
-    let valA = cardA[sortKey] || "";
-    let valB = cardB[sortKey] || "";
-
-    if (sortKey === "name") {
-      return valA.toString().localeCompare(valB.toString(), "pt", { sensitivity: "base" }) * (ascending ? 1 : -1);
+  if (sortKey === "random") {
+    // shuffle the array in place
+    for (let i = selected.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [selected[i], selected[j]] = [selected[j], selected[i]];
     }
-    if (["price", "passcode", "quantity"].includes(sortKey)) {
-      const aNum = parseFloat(valA.toString().replace(",", ".")) || 0;
-      const bNum = parseFloat(valB.toString().replace(",", ".")) || 0;
-      return ascending ? (aNum - bNum) : (bNum - aNum);
-    }
-    return ascending
-      ? ("" + valA).localeCompare("" + valB, "pt", { sensitivity: "base" })
-      : ("" + valB).localeCompare("" + valA, "pt", { sensitivity: "base" });
-  });
+  } else {
+    selected.sort((a, b) => {
+      const cardA = a.card;
+      const cardB = b.card;
 
+      let valA = cardA[sortKey] || "";
+      let valB = cardB[sortKey] || "";
+
+      if (sortKey === "name") {
+        return valA.toString().localeCompare(valB.toString(), "pt", { sensitivity: "base" }) * (ascending ? 1 : -1);
+      }
+      if (["price", "passcode", "quantity"].includes(sortKey)) {
+        const aNum = parseFloat(valA.toString().replace(",", ".")) || 0;
+        const bNum = parseFloat(valB.toString().replace(",", ".")) || 0;
+        return ascending ? (aNum - bNum) : (bNum - aNum);
+      }
+      return ascending
+        ? ("" + valA).localeCompare("" + valB, "pt", { sensitivity: "base" })
+        : ("" + valB).localeCompare("" + valA, "pt", { sensitivity: "base" });
+    });
+      }
   // Step 5: build lines
   const output = selected.map(({ card, qty }) => {
     let line = `${qty} ${card.name}`;
