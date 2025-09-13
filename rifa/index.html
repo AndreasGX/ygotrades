@@ -26,15 +26,15 @@
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center mb-6">
       <div class="bg-gray-50 p-4 rounded-lg shadow-sm">
         <p class="text-gray-500 text-sm">Preço por entrada</p>
-        <p class="text-xl font-bold text-green-600">R$ 10,00</p>
+        <p id="price" class="text-xl font-bold text-green-600">Carregando...</p>
       </div>
       <div class="bg-gray-50 p-4 rounded-lg shadow-sm">
         <p class="text-gray-500 text-sm">Total de entradas</p>
-        <p class="text-xl font-bold">100</p>
+        <p id="total" class="text-xl font-bold">Carregando...</p>
       </div>
       <div class="bg-gray-50 p-4 rounded-lg shadow-sm">
         <p class="text-gray-500 text-sm">Entradas disponíveis</p>
-        <p class="text-xl font-bold text-blue-600">50</p>
+        <p id="available" class="text-xl font-bold text-blue-600">Carregando...</p>
       </div>
     </div>
 
@@ -58,5 +58,34 @@
     </div>
   </div>
 
+  <script>
+    // 🔹 Replace with your actual Google Sheets CSV URL
+    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRc1vEOY2v-6u4z5Pfctac0rV0-2GotTb4g9hOECFZmscjHWbEjkPXyuJ4OiqBYCrMEoVrQRwCQBOlv/pub?output=csv";
+
+    async function loadData() {
+      try {
+        const response = await fetch(sheetUrl);
+        const text = await response.text();
+
+        const rows = text.trim().split("\n").map(r => r.split(","));
+        const headers = rows[0].map(h => h.trim().toLowerCase());
+        const values = rows[1];
+
+        const data = {};
+        headers.forEach((h, i) => {
+          data[h] = values[i];
+        });
+
+        // Map the values to the page
+        document.getElementById("price").textContent = `R$ ${data["raffleprice"]},00`;
+        document.getElementById("total").textContent = data["raffletotal"];
+        document.getElementById("available").textContent = data["raffleavailable"];
+      } catch (error) {
+        console.error("Erro ao carregar dados:", error);
+      }
+    }
+
+    loadData();
+  </script>
 </body>
 </html>
