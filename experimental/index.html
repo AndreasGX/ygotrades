@@ -231,17 +231,42 @@
         ? ("" + valA).localeCompare("" + valB, "pt", { sensitivity: "base" })
         : ("" + valB).localeCompare("" + valA, "pt", { sensitivity: "base" });
     });
-      }
-  // Step 5: build lines
+  }
+
+  // Step 5: build lines + calculate total
+  let totalPrice = 0;
+  let totalCards = 0;
+
   const output = selected.map(({ card, qty }) => {
+    const unitPrice = parseFloat(card.price.toString().replace(",", ".")) || 0;
+    const linePrice = unitPrice * qty;
+    totalPrice += linePrice;
+    totalCards += qty;
+
     let line = `${qty} ${card.name}`;
     if (nameCounts[card.name] > 1) {
       let trimmedSet = card.setid ? card.setid.split("-")[0] : "";
       let lastDigit = card.passcode ? card.passcode.toString().slice(-1) : "";
       line += ` (${trimmedSet}${lastDigit})`;
     }
-    return line;
+
+    // format price in BRL
+    const priceFormatted = linePrice.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+      minimumFractionDigits: 2,
+    });
+
+    return `${line} - ${priceFormatted}`;
   });
+
+  // add total at the end
+  const totalFormatted = totalPrice.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 2,
+  });
+  output.push(`\nTotal: ${totalFormatted} (${totalCards} cards)`);
 
   return output.join("\n");
 }
