@@ -18,7 +18,19 @@
            class="w-64 rounded-lg shadow-md">
       <div>
         <h2 class="text-2xl font-semibold mb-2">Prêmio: Coleção Yu-Gi-Oh!</h2>
-        <p class="text-gray-700">Participe desta rifa e concorra a ganhar toda minha coleção de cards no valor de R$ 1000! O sorteio será realizado quando a meta de entradas for atingida.</p>
+        <p class="text-gray-700 mb-3">
+          Participe desta rifa e concorra a ganhar toda minha coleção de cards no valor de mais de R$ 1000! 
+          O sorteio será realizado quando a meta de entradas for atingida.
+        </p>
+        <h3 class="text-lg font-semibold mb-1">📦 Conteúdo do prêmio:</h3>
+        <ul class="list-disc list-inside text-gray-700 space-y-1">
+          <li>620+ BRL em cards Yu-Gi-Oh! (mais de 700 cartas)</li>
+          <li>2 caixas</li>
+          <li>2 deck boxes</li>
+          <li>150 plásticos protetores (sleeves)</li>
+          <li>38 sleeves verdes</li>
+          <li>50 sleeves magenta</li>
+        </ul>
       </div>
     </div>
 
@@ -59,18 +71,16 @@
   </div>
 
   <script>
-    // 🔹 Replace with your actual Google Sheets CSV URL
+    // Google Sheets CSV URL
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRc1vEOY2v-6u4z5Pfctac0rV0-2GotTb4g9hOECFZmscjHWbEjkPXyuJ4OiqBYCrMEoVrQRwCQBOlv/pub?output=csv";
 
     async function loadData() {
       try {
         const response = await fetch(sheetUrl);
         const text = await response.text();
-
         const rows = text.trim().split("\n").map(r => r.split(","));
         const headers = rows[0].map(h => h.trim().toLowerCase());
         const values = rows[1];
-
         const data = {};
         headers.forEach((h, i) => {
           data[h] = values[i];
