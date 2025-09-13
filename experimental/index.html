@@ -146,7 +146,7 @@
     <div>
       <h4 class="font-bold">${card.name}</h4>
       ${card.setid ? `<p class="text-sm text-gray-600">Número: ${card.setid}</p>` : ""}
-      ${card.setid ? `<p class="text-sm text-gray-600">Código: ${card.passcode}</p>` : ""}
+      ${card.passcode ? `<p class="text-sm text-gray-600">Código: ${card.passcode}</p>` : ""}
       ${priceDisplay}
       ${quantityDisplay}
       ${outOfStockBadge}
