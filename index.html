@@ -12,8 +12,8 @@
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen p-6">
-  <h1 class="text-3xl font-bold mb-6 text-center">Lista de Trocas do Tony v1</h1>
-  <p class="text-center text-gray-600 mb-6">Minha página para venda e troca de cards de Yu-Gi-Oh! Aqui você encontra os cards que tenho disponíveis para troca e também os que estou procurando.</p>
+  <h1 class="text-3xl font-bold mb-6 text-center">Lista de Trocas do Tony</h1>
+  <p class="text-center text-gray-600 mb-6">Minha página para venda e troca de cards de Yu-Gi-Oh! Aqui você encontra os que tenho disponíveis para troca e também os que estou procurando.</p>
 
   <div id="warnings" class="max-w-3xl mx-auto mb-6 text-red-600 font-semibold"></div>
   <div class="grid grid-cols-2 gap-8">
@@ -194,9 +194,10 @@
 
   if (!selected.length) return "";
 
-  // Step 2: count duplicates for suffix
+  // Step 2: count duplicates in the full CSV for suffix
   const nameCounts = {};
-  selected.forEach(({ card }) => {
+  sellingCards.forEach(card => {
+    if (!card) return;
     nameCounts[card.name] = (nameCounts[card.name] || 0) + 1;
   });
 
@@ -206,7 +207,6 @@
 
   // Step 4: sort the selected cards
   if (sortKey === "random") {
-    // shuffle the array in place
     for (let i = selected.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [selected[i], selected[j]] = [selected[j], selected[i]];
@@ -233,7 +233,7 @@
     });
   }
 
-  // Step 5: build lines + calculate total
+  // Step 5: build lines + calculate totals
   let totalPrice = 0;
   let totalCards = 0;
 
@@ -244,13 +244,14 @@
     totalCards += qty;
 
     let line = `${qty} ${card.name}`;
+
+    // Only add setid+digit if duplicates exist in the full CSV
     if (nameCounts[card.name] > 1) {
-      let trimmedSet = card.setid ? card.setid.split("-")[0] : "";
-      let lastDigit = card.passcode ? card.passcode.toString().slice(-1) : "";
+      const trimmedSet = card.setid ? card.setid.split("-")[0] : "";
+      const lastDigit = card.passcode ? card.passcode.toString().slice(-1) : "";
       line += ` (${trimmedSet}${lastDigit})`;
     }
 
-    // format price in BRL
     const priceFormatted = linePrice.toLocaleString("pt-BR", {
       style: "currency",
       currency: "BRL",
@@ -260,7 +261,7 @@
     return `${line} - ${priceFormatted}`;
   });
 
-  // add total at the end
+  // Add total at the end
   const totalFormatted = totalPrice.toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL",
