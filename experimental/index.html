@@ -132,7 +132,7 @@
 
   let quantityDisplay = "";
   if (qtyNum > 0) {
-    quantityDisplay = `<p class="text-sm text-blue-600">Cópias: ${qtyNum}</p>`;
+    quantityDisplay = `<p class="text-sm text-blue-600">Quantidade: ${qtyNum}</p>`;
   }
 
   let outOfStockBadge = "";
@@ -145,7 +145,8 @@
     <img src="${image}" alt="${card.name}" class="w-20 h-[86px] object-contain rounded cursor-pointer">
     <div>
       <h4 class="font-bold">${card.name}</h4>
-      ${card.setid ? `<p class="text-sm text-gray-600">${card.setid}</p>` : ""}
+      ${card.setid ? `<p class="text-sm text-gray-600">Número: ${card.setid}</p>` : ""}
+      ${card.setid ? `<p class="text-sm text-gray-600">Código: ${card.passcode}</p>` : ""}
       ${priceDisplay}
       ${quantityDisplay}
       ${outOfStockBadge}
@@ -179,36 +180,64 @@
     }
 
     function generateSellingListText() {
-      let output = [];
+  // Step 1: collect selected cards
+  const selected = Object.keys(selectedSelling)
+    .map(k => {
+      const idx = parseInt(k, 10);
+      const card = sellingCards[idx];
+      if (!card) return null;
+      const qty = selectedSelling[idx] || 0;
+      if (!qty) return null;
+      return { card, qty };
+    })
+    .filter(Boolean);
 
-      // Count how many times each name appears
-      const nameCounts = {};
-      sellingCards.forEach(c => {
-        if (!c) return;
-        const name = c.name;
-        nameCounts[name] = (nameCounts[name] || 0) + 1;
-      });
+  if (!selected.length) return "";
 
-      currentSellingOrder.forEach(idx => {
-        const card = sellingCards[idx];
-        if (!card) return;
-        if (!selectedSelling[idx]) return;
+  // Step 2: count duplicates for suffix
+  const nameCounts = {};
+  selected.forEach(({ card }) => {
+    nameCounts[card.name] = (nameCounts[card.name] || 0) + 1;
+  });
 
-        const qty = selectedSelling[idx];
-        let line = `${qty} ${card.name}`;
+  // Step 3: determine current sort settings
+  const sortKey = document.getElementById("selling-sort").value;
+  const ascending = document.getElementById("selling-order").textContent === "Ascendente";
 
-        // Only add SETID+digit if there are duplicates
-        if (nameCounts[card.name] > 1) {
-          let trimmedSet = card.setid ? card.setid.split("-")[0] : "";
-          let lastDigit = card.passcode ? card.passcode.toString().slice(-1) : "";
-          line += ` (${trimmedSet}${lastDigit})`;
-        }
+  // Step 4: sort the selected cards
+  selected.sort((a, b) => {
+    const cardA = a.card;
+    const cardB = b.card;
 
-        output.push(line);
-      });
+    let valA = cardA[sortKey] || "";
+    let valB = cardB[sortKey] || "";
 
-      return output.join("\n");
+    if (sortKey === "name") {
+      return valA.toString().localeCompare(valB.toString(), "pt", { sensitivity: "base" }) * (ascending ? 1 : -1);
     }
+    if (["price", "passcode", "quantity"].includes(sortKey)) {
+      const aNum = parseFloat(valA.toString().replace(",", ".")) || 0;
+      const bNum = parseFloat(valB.toString().replace(",", ".")) || 0;
+      return ascending ? (aNum - bNum) : (bNum - aNum);
+    }
+    return ascending
+      ? ("" + valA).localeCompare("" + valB, "pt", { sensitivity: "base" })
+      : ("" + valB).localeCompare("" + valA, "pt", { sensitivity: "base" });
+  });
+
+  // Step 5: build lines
+  const output = selected.map(({ card, qty }) => {
+    let line = `${qty} ${card.name}`;
+    if (nameCounts[card.name] > 1) {
+      let trimmedSet = card.setid ? card.setid.split("-")[0] : "";
+      let lastDigit = card.passcode ? card.passcode.toString().slice(-1) : "";
+      line += ` (${trimmedSet}${lastDigit})`;
+    }
+    return line;
+  });
+
+  return output.join("\n");
+}
 
     function renderSection({cards, listEl, searchInput, sortSelect, orderBtn, withSelection = false}) {
       function update() {
@@ -355,7 +384,7 @@
   // Note if we fell back to English
   const fetchedLang = details._fetchedLang || 'pt';
   const langNote = fetchedLang !== 'pt' 
-    ? `<p class="text-sm text-yellow-600 font-semibold" style="text-align:center"> Indisponível em Português — Exibindo em Inglês.</p>`
+    ? `<p class="text-sm text-yellow-600 font-semibold text-center"> Indisponível em Português — Exibindo em Inglês.</p>`
     : '';
 
   // banlist formatting (keeps your existing colors)
@@ -499,7 +528,7 @@
       document.getElementById("copy-selling").addEventListener("click", () => {
         const text = generateSellingListText();
         navigator.clipboard.writeText(text).then(() => {
-          alert("Lista copiada!");
+          alert("Lista copiada para a área de transferência.");
         });
       });
 
@@ -512,7 +541,7 @@
   </script>
     <p class="text-center text-gray-700 mt-6">
     Decidiu e copiou sua lista? Fale comigo no 
-    <a href="https://wa.me/5588997123073" target="_blank" class="text-green-600 underline font-semibold">Whatsapp</a>.
-  </p>
+    <a href="https://wa.me/5588997123073" target="_blank" class="text-green-600 font-semibold">Whatsapp</a>.</p>
+  <p class="text-center text-sm text-gray-400">Uma surpresa vem aí...</p>
 </body>
 </html>
