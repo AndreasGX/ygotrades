@@ -12,8 +12,8 @@
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen p-6">
-  <h1 class="text-3xl font-bold mb-6 text-center">Lista de Trocas do Tony</h1>
-  <p class="text-center text-gray-600 mb-6">Minha página para venda e troca de cards de Yu-Gi-Oh! Aqui você encontra os que tenho disponíveis para troca e também os que estou procurando.</p>
+  <h1 class="text-3xl font-bold mb-6 text-center">Lista de Trocas do Tony v1</h1>
+  <p class="text-center text-gray-600 mb-6">Minha página para venda e troca de cards de Yu-Gi-Oh! Aqui você encontra os cards que tenho disponíveis para troca e também os que estou procurando.</p>
 
   <div id="warnings" class="max-w-3xl mx-auto mb-6 text-red-600 font-semibold"></div>
   <div class="grid grid-cols-2 gap-8">
@@ -146,7 +146,7 @@
     <div>
       <h4 class="font-bold">${card.name}</h4>
       ${card.setid ? `<p class="text-sm text-gray-600">Número: ${card.setid}</p>` : ""}
-      ${card.setid ? `<p class="text-sm text-gray-600">Código: ${card.passcode}</p>` : ""}
+      ${card.passcode ? `<p class="text-sm text-gray-600">Código: ${card.passcode}</p>` : ""}
       ${priceDisplay}
       ${quantityDisplay}
       ${outOfStockBadge}
@@ -180,36 +180,96 @@
     }
 
     function generateSellingListText() {
-      let output = [];
+  // Step 1: collect selected cards
+  const selected = Object.keys(selectedSelling)
+    .map(k => {
+      const idx = parseInt(k, 10);
+      const card = sellingCards[idx];
+      if (!card) return null;
+      const qty = selectedSelling[idx] || 0;
+      if (!qty) return null;
+      return { card, qty };
+    })
+    .filter(Boolean);
 
-      // Count how many times each name appears
-      const nameCounts = {};
-      sellingCards.forEach(c => {
-        if (!c) return;
-        const name = c.name;
-        nameCounts[name] = (nameCounts[name] || 0) + 1;
-      });
+  if (!selected.length) return "";
 
-      currentSellingOrder.forEach(idx => {
-        const card = sellingCards[idx];
-        if (!card) return;
-        if (!selectedSelling[idx]) return;
+  // Step 2: count duplicates for suffix
+  const nameCounts = {};
+  selected.forEach(({ card }) => {
+    nameCounts[card.name] = (nameCounts[card.name] || 0) + 1;
+  });
 
-        const qty = selectedSelling[idx];
-        let line = `${qty} ${card.name}`;
+  // Step 3: determine current sort settings
+  const sortKey = document.getElementById("selling-sort").value;
+  const ascending = document.getElementById("selling-order").textContent === "Ascendente";
 
-        // Only add SETID+digit if there are duplicates
-        if (nameCounts[card.name] > 1) {
-          let trimmedSet = card.setid ? card.setid.split("-")[0] : "";
-          let lastDigit = card.passcode ? card.passcode.toString().slice(-1) : "";
-          line += ` (${trimmedSet}${lastDigit})`;
-        }
-
-        output.push(line);
-      });
-
-      return output.join("\n");
+  // Step 4: sort the selected cards
+  if (sortKey === "random") {
+    // shuffle the array in place
+    for (let i = selected.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [selected[i], selected[j]] = [selected[j], selected[i]];
     }
+  } else {
+    selected.sort((a, b) => {
+      const cardA = a.card;
+      const cardB = b.card;
+
+      let valA = cardA[sortKey] || "";
+      let valB = cardB[sortKey] || "";
+
+      if (sortKey === "name") {
+        return valA.toString().localeCompare(valB.toString(), "pt", { sensitivity: "base" }) * (ascending ? 1 : -1);
+      }
+      if (["price", "passcode", "quantity"].includes(sortKey)) {
+        const aNum = parseFloat(valA.toString().replace(",", ".")) || 0;
+        const bNum = parseFloat(valB.toString().replace(",", ".")) || 0;
+        return ascending ? (aNum - bNum) : (bNum - aNum);
+      }
+      return ascending
+        ? ("" + valA).localeCompare("" + valB, "pt", { sensitivity: "base" })
+        : ("" + valB).localeCompare("" + valA, "pt", { sensitivity: "base" });
+    });
+  }
+
+  // Step 5: build lines + calculate total
+  let totalPrice = 0;
+  let totalCards = 0;
+
+  const output = selected.map(({ card, qty }) => {
+    const unitPrice = parseFloat(card.price.toString().replace(",", ".")) || 0;
+    const linePrice = unitPrice * qty;
+    totalPrice += linePrice;
+    totalCards += qty;
+
+    let line = `${qty} ${card.name}`;
+    if (nameCounts[card.name] > 1) {
+      let trimmedSet = card.setid ? card.setid.split("-")[0] : "";
+      let lastDigit = card.passcode ? card.passcode.toString().slice(-1) : "";
+      line += ` (${trimmedSet}${lastDigit})`;
+    }
+
+    // format price in BRL
+    const priceFormatted = linePrice.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+      minimumFractionDigits: 2,
+    });
+
+    return `${line} - ${priceFormatted}`;
+  });
+
+  // add total at the end
+  const totalFormatted = totalPrice.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 2,
+  });
+  output.push(`\nTotal: ${totalFormatted} (${totalCards} cards)`);
+
+  return output.join("\n");
+}
 
     function renderSection({cards, listEl, searchInput, sortSelect, orderBtn, withSelection = false}) {
       function update() {
@@ -514,6 +574,6 @@
     <p class="text-center text-gray-700 mt-6">
     Decidiu e copiou sua lista? Fale comigo no 
     <a href="https://wa.me/5588997123073" target="_blank" class="text-green-600 font-semibold">Whatsapp</a>.</p>
-  <p class="text-center text-sm text-gray-300">Uma surpresa vem aí...</p>
+  <p class="text-center text-sm text-gray-400">Uma surpresa vem aí...</p>
 </body>
 </html>
