@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Lista de Trocas do Tony</title>
+  <link rel="icon" href="https://images.ygoprodeck.com/images/cards_cropped/5556668.jpg" type="image/png">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <style>
@@ -12,7 +13,7 @@
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen p-6">
-  <h1 class="text-3xl font-bold mb-6 text-center">Lista de Trocas do Tony</h1>
+  <h1 class="text-3xl font-bold mb-6 text-center">Lista de Trocas do Tony v1</h1>
   <p class="text-center text-gray-600 mb-6">Minha página para venda e troca de cards de Yu-Gi-Oh! Aqui você encontra os que tenho disponíveis para troca e também os que estou procurando.</p>
 
   <div id="warnings" class="max-w-3xl mx-auto mb-6 text-red-600 font-semibold"></div>
@@ -24,7 +25,7 @@
       <div class="flex items-center gap-4 mb-2">
         <label>Ordenar por:</label>
         <select id="selling-sort" class="border rounded p-1 text-sm"></select>
-        <button id="selling-order" class="bg-gray-200 px-2 rounded text-sm">Ascendente</button>
+        <button id="selling-order" class="bg-gray-200 px-2 rounded text-sm">Asc</button>
         <label class="flex items-center gap-2 ml-auto">
           <input type="checkbox" id="select-all-selling" class="h-4 w-4">
           Selecionar tudo
@@ -46,7 +47,7 @@
       <div class="flex items-center gap-2 mb-2">
         <label>Ordenar por:</label>
         <select id="wanted-sort" class="border rounded p-1 text-sm"></select>
-        <button id="wanted-order" class="bg-gray-200 px-2 rounded text-sm">Ascendente</button>
+        <button id="wanted-order" class="bg-gray-200 px-2 rounded text-sm">Asc</button>
       </div>
       <div id="wanted-list" class="grid gap-4 h-[70vh] overflow-y-auto"></div>
     </div>
@@ -203,7 +204,7 @@
 
   // Step 3: determine current sort settings
   const sortKey = document.getElementById("selling-sort").value;
-  const ascending = document.getElementById("selling-order").textContent === "Ascendente";
+  const ascending = document.getElementById("selling-order").textContent === "Asc";
 
   // Step 4: sort the selected cards
   if (sortKey === "random") {
@@ -275,7 +276,7 @@
     function renderSection({cards, listEl, searchInput, sortSelect, orderBtn, withSelection = false}) {
       function update() {
         const search = searchInput.value.toLowerCase();
-        const sortedIndices = sortCards(cards, sortSelect.value, orderBtn.textContent === "Ascendente");
+        const sortedIndices = sortCards(cards, sortSelect.value, orderBtn.textContent === "Asc");
         listEl.innerHTML = "";
         let hasResults = false;
         const visibleIndices = [];
@@ -333,7 +334,7 @@
       }
       sortSelect.addEventListener("change", update);
       orderBtn.addEventListener("click", () => {
-        orderBtn.textContent = orderBtn.textContent === "Ascendente" ? "Descendente" : "Ascendente";
+        orderBtn.textContent = orderBtn.textContent === "Asc" ? "Desc" : "Asc";
         update();
       });
       searchInput.addEventListener("input", update);
@@ -575,6 +576,7 @@
     <p class="text-center text-gray-700 mt-6">
     Decidiu e copiou sua lista? Fale comigo no 
     <a href="https://wa.me/5588997123073" target="_blank" class="text-green-600 font-semibold">Whatsapp</a>.</p>
-  <p class="text-center text-sm text-gray-400">Uma surpresa vem aí...</p>
+  <p class="text-center text-gray-700 mt-3">Quer ter uma chance de ganhar TODOS os cards da lista? Clique
+  <a href="https://andreasgx.github.io/ygotrades/rifa" target="_blank" class="text-blue-600 font-semibold">AQUI</a>!</p>
 </body>
 </html>
