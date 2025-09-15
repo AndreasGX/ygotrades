@@ -22,12 +22,12 @@
         <h2 class="text-2xl font-semibold mb-3">🏆 Prêmio: Coleção Yu-Gi-Oh!</h2>
         <p class="text-gray-700 mb-3">
           Participe desta rifa e concorra a ganhar minha coleção completa no valor de pouco mais de <span class="font-bold text-green-600">R$ 800,00</span>!
-          Comprando sua entrada você também me ajuda a voltar aos duelos. Cada venda também deixa o sorteio mais próximo, reduzindo as entradas totais e aumentando suas chances.
-          <p class="text-gray-700">O sorteio será realizado assim que todas as entradas forem preenchidas.
+          Comprando um ponto você também me ajuda a voltar aos duelos. Cada venda também deixa o sorteio mais próximo, reduzindo os pontos totais e aumentando suas chances.
+          <p class="text-gray-700">O sorteio será realizado assim que todos os pontos forem preenchidas.
         </p>
         <h3 class="text-lg font-semibold mb-2">📦 Conteúdo do prêmio:</h3>
         <ul class="list-disc list-inside text-gray-700 space-y-1">
-          <li>Mais de 700 cards + 5 fichas e 1 card de centro de campo</li>
+          <li>Mais de 700 cards + 5 fichas</li>
           <li>2 caixas para guardar cards</li>
           <li>2 porta-cards</li>
           <li>287 protetores - 180 transparentes, 35 verdes, 60 magenta e 12 outros</li>
@@ -41,18 +41,22 @@
     <hr class="my-6">
 
     <!-- Info -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center mb-6">
+    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 text-center mb-6">
       <div class="bg-gray-50 p-4 rounded-lg shadow-sm">
-        <p class="text-gray-500 text-sm">Preço por entrada</p>
+        <p class="text-gray-500 text-sm">Preço por ponto</p>
         <p id="price" class="text-xl font-bold text-green-600">...</p>
       </div>
       <div class="bg-gray-50 p-4 rounded-lg shadow-sm">
-        <p class="text-gray-500 text-sm">Total de entradas</p>
+        <p class="text-gray-500 text-sm">Total de pontos</p>
         <p id="total" class="text-xl font-bold">...</p>
       </div>
       <div class="bg-gray-50 p-4 rounded-lg shadow-sm">
-        <p class="text-gray-500 text-sm">Entradas disponíveis</p>
+        <p class="text-gray-500 text-sm">Pontos disponíveis</p>
         <p id="available" class="text-xl font-bold text-blue-600">...</p>
+      </div>
+      <div class="bg-gray-50 p-4 rounded-lg shadow-sm">
+        <p class="text-gray-500 text-sm">Probabilidade por ponto</p>
+        <p id="odds" class="text-xl font-bold text-purple-600">...</p>
       </div>
     </div>
 
@@ -72,7 +76,7 @@
       <h3 class="text-xl font-semibold mb-3">📖 Como participar</h3>
       <ol class="list-decimal list-inside text-gray-700 space-y-1">
         <li>Entre em contato comigo no meu WhatsApp - (88) 9 9712-3073
-        <li>Escolha quantas entradas deseja comprar.</li>
+        <li>Escolha quantos pontos deseja comprar.</li>
         <li>Efetue o pagamento via Pix.</li>
         <li>Envie o comprovante junto com seu nome.</li>
         <li>Receba sua confirmação e boa sorte!</li>
@@ -85,7 +89,7 @@
          class="inline-block bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-xl text-lg font-semibold shadow-lg animate-bounce">
         🎟️ Participe
       </a>
-      <p class="text-xs text-gray-400 mt-3">O conteúdo do prêmio e número de entradas totais estão sujeitos a mudanças.</p>
+      <p class="text-xs text-gray-400 mt-3">O conteúdo do prêmio e número de pontos totais estão sujeitos a mudanças.</p>
       <p class="text-xs text-gray-400">Garanto seu dinheiro de volta em caso de imprevisto.</p>
     </div>
   </div>
@@ -119,6 +123,11 @@
 
         document.getElementById("progress-bar").style.width = progress + "%";
         document.getElementById("progress-text").textContent = `${progress}% preenchido (${sold}/${total} vendidos)`;
+        
+        // Probability per entry
+        const odds = (1 / total * 100).toFixed(2);
+        document.getElementById("odds").textContent = `${odds}%`;
+
       } catch (error) {
         console.error("Erro ao carregar dados:", error);
         document.getElementById("price").textContent = "Indisponível";
