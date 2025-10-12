@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Rifa Coleção Yu-Gi-Oh!</title>
+  <link rel="icon" href="https://images.ygoprodeck.com/images/cards_cropped/75500286.jpg" type="image/png">
+  <style>
+    body {
+      margin:0;
+      font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial;
+      background: linear-gradient(180deg,#071029 0%, #071627 100%);
+      color: #e6eef6;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+    .card {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.03);
+      border-radius: 24px;
+      padding: 24px;
+      max-width: 900px;
+      width: 100%;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    }
+    h1, h2, h3 {
+      margin:0 0 12px;
+    }
+    h1 {
+      font-size: 2rem;
+      text-align: center;
+      color: #7c5cff;
+    }
+    h2 {
+      font-size: 1.5rem;
+      color: #7c5cff;
+    }
+    h3 {
+      font-size: 1.2rem;
+      color: #9aa4b2;
+    }
+    p, li {
+      color: #d7e3f5;
+    }
+    ul, ol {
+      padding-left: 1.5rem;
+    }
+    .flex { display:flex; flex-wrap:wrap; gap:16px; }
+    .flex-col { flex-direction: column; }
+    .flex-row { flex-direction: row; }
+    .items-center { align-items:center; }
+    .justify-center { justify-content:center; }
+    .gap-6 { gap: 16px; }
+    .mb-6 { margin-bottom: 1.5rem; }
+    .mb-8 { margin-bottom: 2rem; }
+    .rounded-lg { border-radius: 16px; }
+    .rounded-xl { border-radius: 12px; }
+    .shadow-md { box-shadow: 0 2px 12px rgba(0,0,0,0.4); }
+    .shadow-lg { box-shadow: 0 4px 24px rgba(0,0,0,0.5); }
+    .shadow-sm { box-shadow: 0 1px 6px rgba(0,0,0,0.3); }
+    .border { border: 1px solid rgba(255,255,255,0.05); }
+    .text-center { text-align:center; }
+    .text-green { color:#3adf7b; }
+    .text-blue { color:#7c5cff; }
+    .text-purple { color:#c792ea; }
+    .progress-container { width:100%; background:rgba(255,255,255,0.05); border-radius:8px; height:12px; margin-top:8px; }
+    .progress-bar { background:#7c5cff; height:100%; border-radius:8px; transition: width 0.5s ease; }
+    .button { background:#3adf7b; color:#fff; padding:12px 24px; border:none; border-radius:16px; font-weight:600; cursor:pointer; text-decoration:none; display:inline-block; box-shadow:0 4px 12px rgba(0,0,0,0.4); transition:all 0.2s ease; }
+    .button:hover { background:#32c770; }
+    hr { border:1px solid rgba(255,255,255,0.05); margin:24px 0; }
+    @media (max-width:768px){ .flex-row { flex-direction: column; } }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🎟️ Super Rifa I 🎟️</h1>
+
+    <div class="flex flex-row items-center gap-6 mb-8">
+      <img src="https://images.ygoprodeck.com/images/cards_cropped/75500286.jpg" alt="Coleção Yu-Gi-Oh!" class="rounded-lg shadow-md" style="width:280px;">
+      <div>
+        <h2>🏆 Prêmio: Coleção Yu-Gi-Oh!</h2>
+        <p>Participe desta rifa e concorra a ganhar minha coleção completa no valor de <span class="text-green font-bold">R$ 750,00</span>! Comprando um ponto você também me ajuda a voltar aos duelos. Cada venda reduz os pontos restantes e aumenta suas chances.</p>
+        <h3>📦 Conteúdo do prêmio:</h3>
+        <ul>
+          <li>Quase 700 cards + 5 fichas</li>
+          <li>2 caixas para guardar cards</li>
+          <li>2 porta-cards</li>
+          <li>287 protetores - 180 transparentes, 35 verdes, 60 magenta e 12 outros</li>
+          <li>4 tapetes de duelo de papel e 1 tapete duro de papelão (gasto)</li>
+          <li>1 álbum de cards (danificado mas utilizável)</li>
+          <li>1 livro de regras (SDPL)</li>
+        </ul>
+      </div>
+    </div>
+
+    <hr>
+
+    <div class="flex gap-4 mb-6" style="flex-wrap:wrap;">
+      <div style="flex:1;background:rgba(255,255,255,0.02);padding:16px;border-radius:12px;text-align:center;">Preço por ponto<br><span id="price" style="font-weight:bold;color:#3adf7b;">...</span></div>
+      <div style="flex:1;background:rgba(255,255,255,0.02);padding:16px;border-radius:12px;text-align:center;">Total de pontos<br><span id="total" style="font-weight:bold;">...</span></div>
+      <div style="flex:1;background:rgba(255,255,255,0.02);padding:16px;border-radius:12px;text-align:center;">Pontos disponíveis<br><span id="available" style="font-weight:bold;color:#7c5cff;">...</span></div>
+      <div style="flex:1;background:rgba(255,255,255,0.02);padding:16px;border-radius:12px;text-align:center;">Probabilidade por ponto<br><span id="odds" style="font-weight:bold;color:#c792ea;">...</span></div>
+    </div>
+
+    <p style="color:#9aa4b2;">Progresso da rifa:</p>
+    <div class="progress-container">
+      <div id="progress-bar" class="progress-bar" style="width:0%"></div>
+    </div>
+    <p id="progress-text" style="font-size:12px;color:#9aa4b2;margin-top:4px;">0% preenchido</p>
+
+    <hr>
+
+    <h3>📖 Como participar</h3>
+    <ol style="color:#d7e3f5;">
+      <li>Entre em contato comigo no meu WhatsApp - (88) 9 9712-3073</li>
+      <li>Escolha quantos pontos deseja comprar.</li>
+      <li>Efetue o pagamento via Pix.</li>
+      <li>Envie o comprovante junto com seu nome.</li>
+      <li>Receba sua confirmação e boa sorte!</li>
+    </ol>
+
+    <div style="text-align:center;margin-top:24px;">
+      <a href="https://wa.me/5588997123073" class="button">🎟️ Participe</a>
+      <p style="font-size:12px;color:#6d7b88;margin-top:4px;">O conteúdo do prêmio e número de pontos totais estão sujeitos a mudanças.</p>
+      <p style="font-size:12px;color:#6d7b88;">Garanto seu dinheiro de volta em caso de imprevisto.</p>
+    </div>
+  </div>
+
+  <script>
+    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRc1vEOY2v-6u4z5Pfctac0rV0-2GotTb4g9hOECFZmscjHWbEjkPXyuJ4OiqBYCrMEoVrQRwCQBOlv/pub?output=csv";
+
+    async function loadData() {
+      try {
+        const response = await fetch(sheetUrl);
+        const text = await response.text();
+        const rows = text.trim().split("\n").map(r => r.split(","));
+        const headers = rows[0].map(h => h.trim().toLowerCase());
+        const values = rows[1];
+        const data = {};
+        headers.forEach((h, i) => { data[h] = values[i]; });
+
+        document.getElementById("price").textContent = `R$ ${data["raffleprice"]},00`;
+        document.getElementById("total").textContent = data["raffletotal"];
+        document.getElementById("available").textContent = data["raffleavailable"];
+
+        const total = parseInt(data["raffletotal"]);
+        const available = parseInt(data["raffleavailable"]);
+        const sold = total - available;
+        const progress = Math.round((sold / total) * 100);
+
+        document.getElementById("progress-bar").style.width = progress + "%";
+        document.getElementById("progress-text").textContent = `${progress}% preenchido (${sold}/${total} vendidos)`;
+
+        const odds = (1 / total * 100).toFixed(2);
+        document.getElementById("odds").textContent = `${odds}%`;
+      } catch (error) {
+        console.error("Erro ao carregar dados:", error);
+        document.getElementById("price").textContent = "Indisponível";
+        document.getElementById("total").textContent = "-";
+        document.getElementById("available").textContent = "-";
+        document.getElementById("progress-text").textContent = "Não foi possível carregar os dados.";
+      }
+    }
+
+    loadData();
+    setInterval(loadData, 60000);
+  </script>
+</body>
+</html>
