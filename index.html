@@ -13,7 +13,7 @@
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen p-6">
-  <h1 class="text-3xl font-bold mb-6 text-center">Lista de Trocas do Tony v1</h1>
+  <h1 class="text-3xl font-bold mb-6 text-center">Lista de Trocas do Tony</h1>
   <p class="text-center text-gray-600 mb-6">Minha página para venda e troca de cards de Yu-Gi-Oh! Aqui você encontra os que tenho disponíveis para troca e também os que estou procurando.</p>
 
   <div id="warnings" class="max-w-3xl mx-auto mb-6 text-red-600 font-semibold"></div>
@@ -76,7 +76,7 @@
 </div>
 
   <script>
-    const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQpJVCUhWxyH_TM4-83ra9FXLCES8yqIBVQy3ed6OoVZwbSH4LkoVh7gBn6K2iz32cQNftsj1E-UIiK/pub?output=csv";
+    const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSe0a1-VoY2KSgsOmpyF00mXD1kthnKGzTh2lM9BZhuP5KKMhK9zsceVU9ikOFXb7U5d60lh5G68CbW/pub?output=csv";
 
     let sellingCards = [];
     let wantedCards = [];
@@ -303,7 +303,7 @@
         });
 
         if (!hasResults) {
-          listEl.innerHTML = `<p class="text-gray-500 italic text-center">Ops! Nada para ver aqui... Fique atento para novidades futuras.</p>`;
+          listEl.innerHTML = `<p class="text-gray-500 italic text-center">Ops! Nada para ver aqui...</p>`;
         }
 
         if (withSelection) {
@@ -576,6 +576,7 @@
     <p class="text-center text-gray-700 mt-6">
     Decidiu e copiou sua lista? Fale comigo no 
     <a href="https://wa.me/5588997123073" target="_blank" class="text-green-600 font-semibold">Whatsapp</a>.</p>
-  <p class="text-center text-gray-700 mt-3">A rifa foi cancelada devido ao prêmio ter sido vendido integralmente. Todos os pontos foram reembolsados aos participantes. Obrigado pela contribuição!
+  <p class="text-center text-gray-700 mt-3">Quer ter uma chance de ganhar TODOS os cards da lista? Clique
+  <a href="https://andreasgx.github.io/ygotrades/rifa" target="_blank" class="text-blue-600 font-semibold">AQUI</a>!</p>
 </body>
 </html>
