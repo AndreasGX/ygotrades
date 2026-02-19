@@ -37,6 +37,17 @@
     }
   }
 
+    @font-face {
+  font-family: "MyCardFont";
+  src: url("assets/fonts/MatrixRegularSmallCaps.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+    .card-name {
+  font-family: "MyCardFont", sans-serif;
+}
+    
   /* --- Apply variables to override Tailwind classes where needed --- */
   body {
     background-color: var(--bg) !important;
@@ -157,7 +168,7 @@
 
     <!-- Right: Info -->
     <div class="flex-1 p-4 overflow-y-auto flex flex-col" id="modal-card-info">
-      <h2 class="text-2xl font-bold mb-4" style="text-align: center" id="modal-card-name"></h2>
+      <h2 class="text-5xl card-name mb-4" style="text-align: center" id="modal-card-name"></h2>
       <div id="modal-card-details" class="flex-1">
         <p>Carregando...</p>
       </div>
@@ -195,7 +206,7 @@
     function createCardElement(card, index, withSelection = false) {
   if (!card.name) return null;
 
-  // Image URL: remove leading zeroes
+  <!-- Image URL: remove leading zeroes -->
   let image = card.customImage || "";
   if (!image && card.passcode) {
     const code = card.passcode.replace(/^0+/, "");
@@ -203,7 +214,7 @@
   }
 
   const div = document.createElement("div");
-  div.className = "bg-white rounded-xl shadow-md p-3 flex gap-3 items-center";
+  div.className = "bg-white rounded-xl shadow-md p-3 flex gap-3 items-center h-[160px]";
 
   const qtyNum = parseInt(card.quantity, 10);
   const isOutOfStock = Number.isFinite(qtyNum) ? qtyNum === 0 : false;
@@ -234,11 +245,11 @@
 
   div.innerHTML = `
     ${checkboxHtml}
-    <img src="${image}" alt="${card.name}" class="w-20 h-[86px] object-contain rounded cursor-pointer">
-    <div>
-      <h4 class="font-bold">${card.name}</h4>
+    <img src="${image}" alt="${card.name}" class="h-[140px] w-auto object-contain rounded cursor-pointer">
+    <div class="flex-1 overflow-hidden">
+      <h4 class="text-3xl card-name truncate">${card.name}</h4>
       ${card.setid ? `<p class="text-sm text-gray-600">Número: ${card.setid}</p>` : ""}
-      ${card.passcode ? `<p class="text-sm text-gray-600">Código: ${card.passcode}</p>` : ""}
+      <!--${card.passcode ? `<p class="text-sm text-gray-600">Código: ${card.passcode}</p>` : ""}-->
       ${priceDisplay}
       ${quantityDisplay}
       ${outOfStockBadge}
