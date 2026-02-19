@@ -4,18 +4,109 @@
   <meta charset="UTF-8">
   <title>Lista de Trocas do Tony</title>
   <link rel="icon" href="https://images.ygoprodeck.com/images/cards_cropped/5556668.jpg" type="image/png">
+  <meta name="color-scheme" content="light dark">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
   <style>
-  .out-of-stock img {
-    filter: contrast(50%);
+  /* --- Color variables (light = default) --- */
+  :root{
+    --bg: #f3f4f6;            /* gray-100 */
+    --text: #0f1724;          /* gray-900 */
+    --muted: #6b7280;         /* gray-500 */
+    --card: #ffffff;          /* white */
+    --card-text: #0f1724;
+    --accent: #16a34a;        /* green-600 */
+    --link: #2563eb;          /* blue-600 */
+    --shadow: 0 6px 18px rgba(2,6,23,0.08);
+    --input-bg: #ffffff;
   }
+
+  /* --- Dark mode overrides when system prefers dark --- */
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg: #071226;          /* dark page bg */
+      --text: #e6eef8;        /* light text */
+      --muted: #9aa6b2;       /* muted in dark */
+      --card: #0b2233;        /* card surface */
+      --card-text: #e6eef8;
+      --accent: #16a34a;      /* keep green */
+      --link: #60a5fa;        /* lighter blue */
+      --shadow: 0 8px 24px rgba(2,6,23,0.6);
+      --input-bg: rgba(255,255,255,0.02);
+    }
+  }
+
+  /* --- Apply variables to override Tailwind classes where needed --- */
+  body {
+    background-color: var(--bg) !important;
+    color: var(--text) !important;
+    transition: background-color .2s ease, color .2s ease;
+  }
+
+  /* Replace many Tailwind utilities' colors with our variables so long as they exist on the page */
+  .bg-white { background-color: var(--card) !important; }
+  .bg-gray-100 { background-color: var(--bg) !important; }
+  .bg-gray-200 { background-color: rgba(255,255,255,0.03) !important; }
+
+  .text-gray-600, .text-gray-700 { color: var(--muted) !important; }
+  .text-gray-500 { color: var(--muted) !important; }
+
+  /* Cards / surface */
+  .shadow-md, .shadow-lg { box-shadow: var(--shadow) !important; }
+
+  /* Buttons */
+  .bg-green-500 { background-color: var(--accent) !important; }
+  .text-white { color: #ffffff !important; }
+
+  /* Links */
+  a { color: var(--link); }
+  a.text-green-600 { color: var(--accent) !important; }
+
+  /* Inputs, selects, number fields */
+  input, select, textarea {
+    color: var(--card-text) !important;
+    background-color: var(--input-bg) !important;
+    border-color: rgba(0,0,0,0.08);
+    transition: background-color .15s ease, color .15s ease;
+  }
+  input::placeholder { color: rgba(0,0,0,0.35); }
+  @media (prefers-color-scheme: dark){
+    input::placeholder { color: rgba(255,255,255,0.35); }
+    input, select, textarea { border-color: rgba(255,255,255,0.06); }
+  }
+
+  /* Modal */
+  #modal-content { background-color: var(--card) !important; color: var(--card-text) !important; }
+
+  /* Badges and status colors (keep original hues but ensure contrast) */
+  .text-red-600 { color: #ef4444 !important; }
+  .text-orange-600 { color: #f97316 !important; }
+  .text-green-600 { color: var(--accent) !important; }
+  .text-blue-600 { color: #2563eb !important; }
+
+  /* Out-of-stock image visual */
+  .out-of-stock img { filter: contrast(50%); }
+
+  /* Small helpers for better dark appearance */
+  .rounded-xl { border-radius: 0.75rem; }
+  .font-semibold { font-weight: 600; }
+
+  /* Smooth transition for interactive elements */
+  .card-checkbox, .quantity-input, button { transition: opacity .12s ease, transform .08s ease; }
+
+  /* Ensure focus outlines are visible in dark */
+  :focus { outline: 2px solid rgba(37,99,235,0.15); outline-offset: 2px; }
+
+  /* Make sure the warnings area stands out */
+  #warnings p { margin: .15rem 0; }
+
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen p-6">
   <h1 class="text-3xl font-bold mb-6 text-center">Lista de Trocas do Tony</h1>
-  <p class="text-center text-gray-600 mb-6">Minha página para venda e troca de cards de Yu-Gi-Oh! Aqui você encontra os que tenho disponíveis para troca e também os que estou procurando.</p>
-
+  <p class="text-center text-gray-600 mb-6">Minha página para venda e troca de cards de Yu-Gi-Oh! Aqui você encontra os que tenho disponíveis para troca e também os que estou procurando.
+    <br>Você pode comprar, vender ou trocar comigo. Aceito cartas que você tenha da minha lista "Quero" para dar desconto na sua compra.</p>
   <div id="warnings" class="max-w-3xl mx-auto mb-6 text-red-600 font-semibold"></div>
   <div class="grid grid-cols-2 gap-8">
     <!-- Selling/Trading -->
@@ -576,7 +667,5 @@
     <p class="text-center text-gray-700 mt-6">
     Decidiu e copiou sua lista? Fale comigo no 
     <a href="https://wa.me/5588997123073" target="_blank" class="text-green-600 font-semibold">Whatsapp</a>.</p>
-  <p class="text-center text-gray-700 mt-3">Quer ter uma chance de ganhar TODOS os cards da lista? Clique
-  <a href="https://andreasgx.github.io/ygotrades/rifa" target="_blank" class="text-blue-600 font-semibold">AQUI</a>!</p>
 </body>
 </html>
