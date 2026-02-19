@@ -195,7 +195,7 @@
     function createCardElement(card, index, withSelection = false) {
   if (!card.name) return null;
 
-  // Image URL: remove leading zeroes
+  <!-- Image URL: remove leading zeroes -->
   let image = card.customImage || "";
   if (!image && card.passcode) {
     const code = card.passcode.replace(/^0+/, "");
@@ -237,7 +237,7 @@
     <img src="${image}" alt="${card.name}" class="w-20 h-[86px] object-contain rounded cursor-pointer">
     <div>
       <h4 class="font-bold">${card.name}</h4>
-      ${card.setid ? `<p class="text-sm text-gray-600">Número: ${card.setid}</p>` : ""}
+      <!--${card.setid ? `<p class="text-sm text-gray-600">Número: ${card.setid}</p>` : ""}-->
       ${card.passcode ? `<p class="text-sm text-gray-600">Código: ${card.passcode}</p>` : ""}
       ${priceDisplay}
       ${quantityDisplay}
