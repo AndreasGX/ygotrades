@@ -37,6 +37,17 @@
     }
   }
 
+    @font-face {
+  font-family: "MyCardFont";
+  src: url("../assets/fonts/MatrixBoldSmallCaps.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+    .card-name {
+  font-family: "MyCardFont", sans-serif;
+}
+    
   /* --- Apply variables to override Tailwind classes where needed --- */
   body {
     background-color: var(--bg) !important;
@@ -236,7 +247,7 @@
     ${checkboxHtml}
     <img src="${image}" alt="${card.name}" class="h-[140px] w-auto object-contain rounded cursor-pointer">
     <div class="flex-1 overflow-hidden">
-      <h4 class="font-bold truncate">${card.name}</h4>
+      <h4 class="card-name font-bold truncate">${card.name}</h4>
       ${card.setid ? `<p class="text-sm text-gray-600">Número: ${card.setid}</p>` : ""}
       <!--${card.passcode ? `<p class="text-sm text-gray-600">Código: ${card.passcode}</p>` : ""}-->
       ${priceDisplay}
