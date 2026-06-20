@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Lista de Trocas do Tony</title>
+  <title>Tony's Trade List</title>
   <link rel="icon" href="https://images.ygoprodeck.com/images/cards_cropped/5556668.jpg" type="image/png">
   <meta name="color-scheme" content="light dark">
   <script src="https://cdn.tailwindcss.com"></script>
@@ -39,7 +39,7 @@
 
     @font-face {
   font-family: "MyCardFont";
-  src: url("../assets/fonts/MatrixRegularSmallCaps.woff2") format("woff2");
+  src: url("assets/fonts/MatrixRegularSmallCaps.woff2") format("woff2");
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -115,39 +115,39 @@
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen p-6">
-  <h1 class="text-3xl font-bold mb-6 text-center">Lista de Trocas do Tony</h1>
-  <p class="text-center text-gray-600 mb-6">Minha página para venda e troca de cards de Yu-Gi-Oh! Aqui você encontra os que tenho disponíveis para troca e também os que estou procurando.
-    <br>Você pode comprar, vender ou trocar comigo. Aceito cartas que você tenha da minha lista "Quero" para dar desconto na sua compra.</p>
+  <h1 class="text-5xl card-name mb-6 text-center">Tony's Trade List</h1>
+  <p class="text-center text-gray-600 mb-6">My page for selling and trading Yu-Gi-Oh! cards. Here you will find the ones I have available for trade and also the ones I am looking for.
+    <br>You can buy, sell, or trade with me. I accept cards you have from my wishlist to give you a discount on your purchase.</p>
   <div id="warnings" class="max-w-3xl mx-auto mb-6 text-red-600 font-semibold"></div>
   <div class="grid grid-cols-2 gap-8">
     <!-- Selling/Trading -->
     <div>
-      <h2 class="text-xl font-semibold mb-2">Tenho</h2>
-      <input id="selling-search" type="text" placeholder="Pesquisar..." class="w-full mb-2 border p-1 rounded text-sm">
+      <h2 class="text-xl font-semibold mb-2">Cards I have</h2>
+      <input id="selling-search" type="text" placeholder="Search..." class="w-full mb-2 border p-1 rounded text-sm">
       <div class="flex items-center gap-4 mb-2">
-        <label>Ordenar por:</label>
+        <label>Sort by:</label>
         <select id="selling-sort" class="border rounded p-1 text-sm"></select>
         <button id="selling-order" class="bg-gray-200 px-2 rounded text-sm">Asc</button>
         <label class="flex items-center gap-2 ml-auto">
           <input type="checkbox" id="select-all-selling" class="h-4 w-4">
-          Selecionar tudo
+          Select all
         </label>
       </div>
       <div id="selling-list" class="grid gap-4 h-[70vh] overflow-y-auto mb-4"></div>
       <div class="flex items-center gap-4">
-        <p id="selling-total" class="font-semibold text-lg">Total: R$ 0,00</p>
+        <p id="selling-total" class="font-semibold text-lg">Total: R$ 0.00</p>
         <button id="copy-selling" class="ml-auto bg-green-500 text-white px-3 py-1 rounded text-sm" title="">
-  Copiar Seleção
+  Copy Selection
 </button>
       </div>
     </div>
 
     <!-- Looking For -->
     <div>
-      <h2 class="text-xl font-semibold mb-2">Quero</h2>
-      <input id="wanted-search" type="text" placeholder="Pesquisar..." class="w-full mb-2 border p-1 rounded text-sm">
+      <h2 class="text-xl font-semibold mb-2">Cards I want</h2>
+      <input id="wanted-search" type="text" placeholder="Search..." class="w-full mb-2 border p-1 rounded text-sm">
       <div class="flex items-center gap-2 mb-2">
-        <label>Ordenar por:</label>
+        <label>Sort by:</label>
         <select id="wanted-sort" class="border rounded p-1 text-sm"></select>
         <button id="wanted-order" class="bg-gray-200 px-2 rounded text-sm">Asc</button>
       </div>
@@ -170,9 +170,9 @@
     <div class="flex-1 p-4 overflow-y-auto flex flex-col" id="modal-card-info">
       <h2 class="text-5xl card-name mb-4" style="text-align: center" id="modal-card-name"></h2>
       <div id="modal-card-details" class="flex-1">
-        <p>Carregando...</p>
+        <p>Loading...</p>
       </div>
-      <a href="#" target="_blank" class="text-blue-600 underline mt-4 inline-block" id="modal-card-link">Mais Informações</a>
+      <a href="#" target="_blank" class="text-blue-600 underline mt-4 inline-block" id="modal-card-link">More Information</a>
     </div>
   </div>
 </div>
@@ -235,12 +235,12 @@
 
   let quantityDisplay = "";
   if (qtyNum > 0) {
-    quantityDisplay = `<p class="text-sm text-blue-600">Quantidade: ${qtyNum}</p>`;
+    quantityDisplay = `<p class="text-sm text-blue-600">Quantity: ${qtyNum}</p>`;
   }
 
   let outOfStockBadge = "";
   if (isOutOfStock) {
-    outOfStockBadge = `<p class="text-sm text-red-500 font-semibold">ESGOTADO</p>`;
+    outOfStockBadge = `<p class="text-sm text-red-500 font-semibold">OUT OF STOCK</p>`;
   }
 
   div.innerHTML = `
@@ -248,8 +248,8 @@
     <img src="${image}" alt="${card.name}" class="h-[140px] w-auto object-contain rounded cursor-pointer">
     <div class="flex-1 overflow-hidden">
       <h4 class="text-3xl card-name truncate">${card.name}</h4>
-      ${card.setid ? `<p class="text-sm text-gray-600">Número: ${card.setid}</p>` : ""}
-      <!--${card.passcode ? `<p class="text-sm text-gray-600">Código: ${card.passcode}</p>` : ""}-->
+      ${card.setid ? `<p class="text-sm text-gray-600">Number: ${card.setid}</p>` : ""}
+      <!--${card.passcode ? `<p class="text-sm text-gray-600">Code: ${card.passcode}</p>` : ""}-->
       ${priceDisplay}
       ${quantityDisplay}
       ${outOfStockBadge}
@@ -405,7 +405,7 @@
         });
 
         if (!hasResults) {
-          listEl.innerHTML = `<p class="text-gray-500 italic text-center">Ops! Nada para ver aqui...</p>`;
+          listEl.innerHTML = `<p class="text-gray-500 italic text-center">Oops! Nothing to see here...</p>`;
         }
 
         if (withSelection) {
@@ -508,39 +508,39 @@
   linkEl.href = cardId ? `https://ygoprodeck.com/card/?search=${cardId}` : "#";
 
   // Show loading
-  detailsEl.innerHTML = "<p>Carregando...</p>";
+  detailsEl.innerHTML = "<p>Loading...</p>";
 
   // Fetch and display details
   const details = await fetchCardDetails(card.passcode);
   if (!details) {
-    detailsEl.innerHTML = `<p>Informações detalhadas não encontradas.</p>`;
+    detailsEl.innerHTML = `<p>Detailed information not found.</p>`;
     return;
   }
 
   // Note if we fell back to English
   const fetchedLang = details._fetchedLang || 'pt';
   const langNote = fetchedLang !== 'pt' 
-    ? `<p class="text-sm text-yellow-600 font-semibold text-center"> Indisponível em Português — Exibindo em Inglês.</p>`
+    ? `<p class="text-sm text-yellow-600 font-semibold text-center"> Unavailable in Portuguese — Showing in English.</p>`
     : '';
 
   // banlist formatting (keeps your existing colors)
   const banStatus = details.banlist_info?.ban_tcg || "Unlimited";
   const bantext = banStatus === "Forbidden" ? 
-    `<p style='text-align:center;font-weight:bold;font-size:1.2em;text-transform:uppercase;color:red;'>PROIBIDO</p>` :
+    `<p style='text-align:center;font-weight:bold;font-size:1.2em;text-transform:uppercase;color:red;'>FORBIDDEN</p>` :
     banStatus === "Limited" ? 
-    `<p style='text-align:center;font-weight:bold;font-size:1.2em;text-transform:uppercase;color:orange;'>LIMITADO</p>` :
+    `<p style='text-align:center;font-weight:bold;font-size:1.2em;text-transform:uppercase;color:orange;'>LIMITED</p>` :
     banStatus === "Semi-Limited" ? 
-    `<p style='text-align:center;font-weight:bold;font-size:1.2em;text-transform:uppercase;color:gold;'>SEMI-LIMITADO</p>` :
-    `<p style='text-align:center;font-weight:bold;font-size:1.2em;text-transform:uppercase;color:green;'>ILIMITADO</p>`;
+    `<p style='text-align:center;font-weight:bold;font-size:1.2em;text-transform:uppercase;color:gold;'>SEMI-LIMITED</p>` :
+    `<p style='text-align:center;font-weight:bold;font-size:1.2em;text-transform:uppercase;color:green;'>UNLIMITED</p>`;
 
   detailsEl.innerHTML = `
     ${bantext}
     ${langNote}
-    <p><strong>Tipo:</strong> ${details.attribute ? details.attribute + ' ' : ''}${details.race ? details.race + ' ' : ''}${details.type ?? 'N/A'}</p>
-    <p><strong>Nível/Classe/Link:</strong> ${details.level ?? details.rank ?? details.linkval ?? 'N/A'}</p>
-    <p><strong>Escala:</strong> ${details.scale ?? 'N/A'}</p>
+    <p><strong>Type:</strong> ${details.attribute ? details.attribute + ' ' : ''}${details.race ? details.race + ' ' : ''}${details.type ?? 'N/A'}</p>
+    <p><strong>Level/Rank/Link:</strong> ${details.level ?? details.rank ?? details.linkval ?? 'N/A'}</p>
+    <p><strong>Scale:</strong> ${details.scale ?? 'N/A'}</p>
     <p><strong>ATK/DEF:</strong> ${details.atk ?? 'N/A'} / ${details.def ?? 'N/A'}</p>
-    <p><strong>Descrição/Efeito:</strong> ${details.desc ?? 'N/A'}</p>
+    <p><strong>Description/Effect:</strong> ${details.desc ?? 'N/A'}</p>
   `;
     
     document.getElementById("modal-close").addEventListener("click", () => modal.classList.add("hidden"));
@@ -579,14 +579,14 @@
         // Check duplicates in selling
         sellingCards.forEach(c => {
           const key = `${c.passcode}|${c.setid}`;
-          if (sellingMap.has(key)) warnings.push(`Duplicado em "Tenho": ${c.name} (${c.setid})`);
+          if (sellingMap.has(key)) warnings.push(`Duplicate in "Cards I have": ${c.name} (${c.setid})`);
           sellingMap.set(key, true);
         });
 
         // Check duplicates in wanted
         wantedCards.forEach(c => {
           const key = `${c.passcode}`;
-          if (wantedMap.has(key)) warnings.push(`Duplicado em "Quero": ${c.name}`);
+          if (wantedMap.has(key)) warnings.push(`Duplicate in "Cards I want": ${c.name}`);
           wantedMap.set(key, true);
         });
 
@@ -594,7 +594,7 @@
         const sellingKeys = new Set(sellingCards.map(c => `${c.passcode}`));
         wantedCards.forEach(c => {
           const key = `${c.passcode}`;
-          if (sellingKeys.has(key)) warnings.push(`${c.name} aparece em "Tenho" e "Quero"`);
+          if (sellingKeys.has(key)) warnings.push(`${c.name} appears in both "Cards I have" and "Cards I want"`);
         });
 
         document.getElementById("warnings").innerHTML = warnings.length
@@ -604,12 +604,12 @@
 
       // ---------- Init ----------
       const options = [
-        {value: "random", label: "Aleatório"},
-        {value: "name", label: "Nome"},
-        {value: "setid", label: "Número"},
-        {value: "passcode", label: "Código"},
-        {value: "price", label: "Preço"},
-        {value: "quantity", label: "Quantidade"}
+        {value: "random", label: "Random"},
+        {value: "name", label: "Name"},
+        {value: "setid", label: "Number"},
+        {value: "passcode", label: "Code"},
+        {value: "price", label: "Price"},
+        {value: "quantity", label: "Quantity"}
       ];
       ["selling-sort", "wanted-sort"].forEach(id => {
         const select = document.getElementById(id);
@@ -664,19 +664,19 @@
       document.getElementById("copy-selling").addEventListener("click", () => {
         const text = generateSellingListText();
         navigator.clipboard.writeText(text).then(() => {
-          alert("Lista copiada para a área de transferência.");
+          alert("List copied to clipboard.");
         });
       });
 
       const copyBtn = document.getElementById("copy-selling");
       copyBtn.addEventListener("mouseenter", () => {
         const text = generateSellingListText();
-        copyBtn.title = text || "Lista vazia";
+        copyBtn.title = text || "Empty list";
       });
     })();
   </script>
     <p class="text-center text-gray-700 mt-6">
-    Decidiu e copiou sua lista? Fale comigo no 
+    Decided and copied your list? Talk to me on 
     <a href="https://wa.me/5588997123073" target="_blank" class="text-green-600 font-semibold">Whatsapp</a>.</p>
 </body>
 </html>
